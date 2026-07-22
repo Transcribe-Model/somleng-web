@@ -1,65 +1,166 @@
-import Image from "next/image";
+import Link from "next/link";
+import { SiteLayout } from "@/components/SiteLayout";
+import { km } from "@/lib/km";
 
-export default function Home() {
+const FEATURES = [
+  {
+    title: "ភាសាខ្មែរ",
+    desc: "បង្កើតឡើងសម្រាប់សំឡេងខ្មែរ — បម្លែងយ៉ាងត្រឹមត្រូវសម្រាប់អ្នកនិយាយភាសាកំណើត។",
+  },
+  {
+    title: "រហ័ស និងងាយស្រួល",
+    desc: "បញ្ចូលឯកសារសំឡេង ហើយទទួលបានលទ្ធផលក្នុងរយៈពេលខ្លីសម្រាប់ឯកសារខ្លី។",
+  },
+  {
+    title: "សំឡេងវែង",
+    desc: "គាំទ្រការថតសំឡេងរហូតដល់ ១ ម៉ោង ជាមួយការដំណើរការក្នុងផ្ទៃខាងក្រោយដោយស្វ័យប្រវត្តិ។",
+  },
+  {
+    title: "ទម្រង់ឯកសារច្រើន",
+    desc: "ដំណើរការជាមួយ MP3, WAV, M4A, FLAC និងទម្រង់សំឡេងទូទៅផ្សេងៗទៀត។",
+  },
+  {
+    title: "ចម្លងអត្ថបទ",
+    desc: "ចម្លងអត្ថបទពេញលេខ ឬមើលផ្នែកតាមពេលវេលាក្នុងមួយចុច។",
+  },
+  {
+    title: "ភាសាពីរ",
+    desc: "បម្លែងជាភាសាខ្មែរ ឬអង់គ្លេស — ប្តូរភាសាតាមការបញ្ចូលឯកសារ។",
+  },
+];
+
+const STEPS = [
+  {
+    step: "០១",
+    title: "បញ្ចូលឯកសារ",
+    desc: "បញ្ចូលឯកសារសំឡេងពីកុំព្យូទ័ររបស់អ្នក។",
+  },
+  {
+    step: "០២",
+    title: "ជ្រើសរើសភាសា",
+    desc: "ជ្រើសរើសខ្មែរ ឬអង់គ្លេស ដើម្បីទទួលបានភាពត្រឹមត្រូវល្អបំផុត។",
+  },
+  {
+    step: "០៣",
+    title: "ទទួលលទ្ធផល",
+    desc: "ទទួលបានលទ្ធផលបម្លែង ហើយចម្លងភ្លាមៗ។",
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <SiteLayout>
+      <section className="relative overflow-hidden bg-navy-hero px-4 py-16 sm:px-6 sm:py-24">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 60% at 70% 20%, rgba(184,142,79,0.2), transparent)",
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+        <div className="relative mx-auto max-w-4xl text-center">
+          <p className="khmer-text mb-4 text-sm font-medium text-gold">
+            {km.heroTagline}
           </p>
+          <h1 className="khmer-text text-3xl font-bold leading-snug text-white sm:text-4xl md:text-5xl">
+            បម្លែង<span className="text-gold">សំឡេង</span>ទៅជា
+            <span className="text-gold">អក្សរ</span>
+            <br />
+            យ៉ាង<span className="text-gold">ត្រឹមត្រូវ</span> និង
+            <span className="text-gold">រហ័ស</span>
+          </h1>
+          <p className="khmer-text mx-auto mt-6 max-w-2xl text-base leading-relaxed text-text-light sm:text-lg">
+            សេវាបម្លែងសំឡេងភាសាខ្មែរទៅជាអក្សរ — ប្រើបានភ្លាមៗ
+            គាំទ្រឯកសារខ្លី និងសំឡេងវែងរហូតដល់ ១ ម៉ោង។
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/transcribe"
+              className="khmer-text inline-flex w-full items-center justify-center rounded-[6px] bg-cream px-8 py-3.5 text-base font-semibold text-navy transition hover:bg-bg-accent sm:w-auto"
+            >
+              {km.getStartedTranscribe}
+            </Link>
+            <a
+              href="#features"
+              className="khmer-text inline-flex w-full items-center justify-center rounded-[6px] border border-white/30 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto"
+            >
+              {km.learnMore}
+            </a>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <section id="features" className="px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="khmer-text text-2xl font-bold text-navy sm:text-3xl">
+              លក្ខណៈពិសេស
+            </h2>
+            <p className="khmer-text mt-3 text-text-muted">{km.featuresSubtitle}</p>
+          </div>
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="gov-card p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-[6px] bg-bg-accent">
+                  <span className="h-2.5 w-2.5 rounded-full bg-gold" />
+                </div>
+                <h3 className="khmer-text text-lg font-semibold text-navy">
+                  {f.title}
+                </h3>
+                <p className="khmer-text mt-3 text-sm leading-relaxed text-text-muted">
+                  {f.desc}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      <section className="bg-bg px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="khmer-text text-2xl font-bold text-navy sm:text-3xl">
+              របៀបដំណើរការ
+            </h2>
+            <p className="khmer-text mt-3 text-text-muted">{km.stepsSubtitle}</p>
+          </div>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {STEPS.map((s) => (
+              <div
+                key={s.step}
+                className="relative rounded-[6px] border border-border bg-bg-subtle p-6"
+              >
+                <span className="khmer-text text-3xl font-bold text-gold/80">
+                  {s.step}
+                </span>
+                <h3 className="khmer-text mt-3 text-lg font-semibold text-navy">
+                  {s.title}
+                </h3>
+                <p className="khmer-text mt-2 text-sm text-text-muted">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-4xl overflow-hidden rounded-[6px] bg-navy px-6 py-12 text-center sm:px-12">
+          <h2 className="khmer-text text-2xl font-bold text-white sm:text-3xl">
+            ចាប់ផ្តើមបម្លែងសំឡេងរបស់អ្នកឥឡូវនេះ
+          </h2>
+          <p className="khmer-text mx-auto mt-4 max-w-xl text-sm text-white/75 sm:text-base">
+            {km.ctaSubtitle}
+          </p>
+          <Link
+            href="/transcribe"
+            className="khmer-text mt-8 inline-flex items-center justify-center rounded-[6px] bg-gold px-8 py-3.5 text-base font-semibold text-white transition hover:bg-gold-hover"
+          >
+            {km.getStartedNow}
+          </Link>
+        </div>
+      </section>
+    </SiteLayout>
   );
 }
