@@ -56,7 +56,11 @@ export async function fetchHealth(): Promise<HealthResponse> {
 
 export async function transcribeUpload(
   file: File,
-  options?: { language?: string; model?: string; enableDiarization?: boolean },
+  options?: {
+    language?: string;
+    model?: string;
+    enableDiarization?: boolean;
+  },
 ): Promise<JobCreateResponse> {
   const form = new FormData();
   form.append("file", file);
@@ -131,7 +135,6 @@ export function jobToTranscribeResponse(job: JobResponse): TranscribeResponse {
     segments: job.segments,
     audio_path: null,
     duration_seconds: job.duration_seconds,
-    speaker_count: job.speaker_count ?? null,
   };
 }
 

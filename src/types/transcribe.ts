@@ -15,7 +15,6 @@ export interface TranscribeResponse {
   segments: Segment[];
   audio_path: string | null;
   duration_seconds: number | null;
-  speaker_count?: number | null;
 }
 
 export interface JobCreateResponse {
@@ -35,8 +34,6 @@ export interface JobResponse {
   segments: Segment[];
   error_message: string | null;
   progress_percent: number;
-  enable_diarization?: boolean;
-  speaker_count?: number | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -67,7 +64,8 @@ export interface HealthResponse {
   status: string;
   gcp: boolean;
   supabase: boolean;
-  speaker_diarization?: boolean;
+  storage?: boolean;
+  diarization?: boolean;
   gcp_model: string;
   gcp_language: string;
   available_gcp_models: string[];

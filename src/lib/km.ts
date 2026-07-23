@@ -82,15 +82,16 @@ export const km = {
   audioUnsupported: "កម្មវិធីរុករករបស់អ្នកមិនគាំទ្រការចាក់សំឡេង",
   noSpeech: "មិនបានរកឃើញសំឡេង",
   segments: "ផ្នែកពេលវេលា",
+  detectSpeakers: "រកឃើញអ្នកនិយាយ",
+  detectSpeakersHint:
+    "បែងចែកអ្នកនិយាយ ១ / ២ — ដំណើរការជាមួយភាសាខ្មែរ (អាចចំណាយពេលបន្ថែម)",
+  detectSpeakersUnavailableService:
+    "សេវារកឃើញអ្នកនិយាយមិនទាន់រួច — ពិនិត្យ HUGGINGFACE_TOKEN និងចាប់ផ្តើម API ថ្មីឡើងវិញ",
+  speakerLabel: (id: string) => `អ្នកនិយាយ ${id}`,
+  unknownSpeaker: "អ្នកនិយាយ",
+  speakerTranscript: "សន្ទនាតាមអ្នកនិយាយ",
+  speakerCount: (n: number) => `${n} អ្នកនិយាយ`,
   transcriptionResult: "លទ្ធផលបម្លែង",
-  enableDiarization: "កំណត់អ្នកនិយាយ (Speaker 1, 2, 3...)",
-  enableDiarizationHint:
-    "រកឃើញថាតើមានប៉ុន្មាននាក់កំពុងនិយាយ និងបង្ហាញថាតើនរណានិយាយអ្វី",
-  speakerCount: (count: number) => `${count} នាក់`,
-  speakerTranscriptTitle: "ការសន្ទនាតាមអ្នកនិយាយ",
-  speakerTranscriptSubtitle: "អត្ថបទបែងចែកតាម Speaker 1, 2, 3...",
-  speakersLegend: "បញ្ជីអ្នកនិយាយ",
-  copySpeakerText: "ចម្លងការសន្ទនា",
 
   longAudioHint:
     "សំឡេងវែងអាចចំណាយពេល ៣០ នាទីឬច្រើនជាងនេះ។ អ្នកអាចទុកផ្ទាំងនេះបើកទុកបាន",

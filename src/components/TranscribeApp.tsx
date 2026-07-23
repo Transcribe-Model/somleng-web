@@ -16,12 +16,7 @@ import { km } from "@/lib/km";
 import { AudioPlayer } from "./AudioPlayer";
 import { HistorySidebar } from "./HistorySidebar";
 import { JobProgress } from "./JobProgress";
-import {
-  SpeakerTranscriptResult,
-  formatSpeakerTranscript,
-  hasSpeakerLabels,
-} from "./SpeakerTranscriptResult";
-import { TranscriptResult } from "./TranscriptResult";
+import { TranscriptResult, formatTranscriptForCopy } from "./TranscriptResult";
 import { UploadZone } from "./UploadZone";
 
 const LANGUAGES = [
@@ -34,7 +29,7 @@ export function TranscribeApp() {
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
   const [language, setLanguage] = useState("km-KH");
   const [enableDiarization, setEnableDiarization] = useState(false);
-  const [diarizationAvailable, setDiarizationAvailable] = useState(false);
+  const [diarizationReady, setDiarizationReady] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
@@ -105,6 +100,7 @@ export function TranscribeApp() {
         const h = await fetchHealth();
         const ready = h.gcp && h.supabase;
         setServiceOk(ready);
+        setDiarizationReady(Boolean(h.diarization));
         if (!ready) {
           const missing = [
             !h.gcp && km.gcpMissing,
@@ -116,7 +112,6 @@ export function TranscribeApp() {
           await loadHistory();
         }
         if (h.gcp_language) setLanguage(h.gcp_language);
-        setDiarizationAvailable(Boolean(h.speaker_diarization));
       } catch {
         setServiceOk(false);
         setServiceMessage(km.apiUnreachable);
@@ -152,7 +147,10 @@ export function TranscribeApp() {
     setJobStartedAt(Date.now());
 
     try {
-      const { id } = await transcribeUpload(file, { language, enableDiarization });
+      const { id } = await transcribeUpload(file, {
+        language,
+        enableDiarization,
+      });
       setSelectedJobId(id);
       const job = await pollJobUntilDone(id, (updated) => {
         setJobStatus(updated.status);
@@ -222,9 +220,7 @@ export function TranscribeApp() {
 
   const handleCopy = useCallback(async () => {
     if (!result) return;
-    const text = hasSpeakerLabels(result)
-      ? formatSpeakerTranscript(result)
-      : result.text;
+    const text = formatTranscriptForCopy(result);
     if (!text) return;
     await navigator.clipboard.writeText(text);
     setCopied(true);
@@ -265,25 +261,28 @@ export function TranscribeApp() {
             </select>
           </label>
 
-          {diarizationAvailable && (
-            <label className="flex cursor-pointer items-start gap-3 rounded-[6px] border border-border bg-bg px-4 py-3">
-              <input
-                type="checkbox"
-                checked={enableDiarization}
-                onChange={(e) => setEnableDiarization(e.target.checked)}
-                disabled={loading}
-                className="mt-1 h-4 w-4 shrink-0 accent-navy"
-              />
-              <span className="space-y-0.5">
-                <span className="khmer-text block text-sm font-medium text-text">
-                  {km.enableDiarization}
-                </span>
-                <span className="khmer-text block text-xs text-text-muted">
-                  {km.enableDiarizationHint}
-                </span>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={enableDiarization}
+              disabled={loading}
+              onChange={(e) => setEnableDiarization(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-border text-navy focus:ring-navy"
+            />
+            <span className="min-w-0">
+              <span className="khmer-text block text-sm font-medium text-text">
+                {km.detectSpeakers}
               </span>
-            </label>
-          )}
+              <span className="khmer-text mt-0.5 block text-xs text-text-muted">
+                {km.detectSpeakersHint}
+              </span>
+              {enableDiarization && !diarizationReady && (
+                <span className="khmer-text mt-1 block text-xs text-amber-800">
+                  {km.detectSpeakersUnavailableService}
+                </span>
+              )}
+            </span>
+          </label>
 
           <UploadZone
             onFileSelect={setFile}
@@ -372,20 +371,12 @@ export function TranscribeApp() {
               )}
 
               {result ? (
-                hasSpeakerLabels(result) ? (
-                  <SpeakerTranscriptResult
-                    result={result}
-                    onCopy={handleCopy}
-                    copied={copied}
-                  />
-                ) : (
-                  <TranscriptResult
-                    result={result}
-                    embedded
-                    onCopy={handleCopy}
-                    copied={copied}
-                  />
-                )
+                <TranscriptResult
+                  result={result}
+                  embedded
+                  onCopy={handleCopy}
+                  copied={copied}
+                />
               ) : showEmpty ? (
                 <div className="flex h-full min-h-[16rem] flex-col items-center justify-center rounded-[6px] border border-dashed border-border-strong bg-bg px-6 text-center">
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-bg-accent">
