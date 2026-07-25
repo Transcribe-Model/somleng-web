@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { v2 as speech } from "@google-cloud/speech";
 import { Storage } from "@google-cloud/storage";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const location = process.env.GCP_LOCATION || "us";
