@@ -120,11 +120,23 @@ export const km = {
 
   home: "ទំព័រដើម",
   transcribeNav: "បម្លែងសំឡេង",
+  navFeatures: "លក្ខណៈពិសេស",
+  navHow: "របៀបដំណើរការ",
+  searchAria: "ស្វែងរក",
   pages: "ទំព័រ",
   info: "ព័ត៌មាន",
   languagesInfo: "ភាសា៖ ខ្មែរ · អង់គ្លេស",
   durationInfo: "រយៈពេល៖ រហូតដល់ ១ ម៉ោង",
-  footerAbout: "សេវាបម្លែងសំឡេងភាសាខ្មែរទៅជាអក្សរយ៉ាងត្រឹមត្រូវ និងរហ័ស។",
+  footerAbout: "អំពីយើង",
+  footerNews: "ព័ត៌មាន",
+  footerArticles: "អត្ថបទ",
+  footerContact: "ទំនាក់ទំនង",
+  footerTagline: "សេវាបម្លែងសំឡេងភាសាខ្មែរទៅជាអក្សរយ៉ាងត្រឹមត្រូវ និងរហ័ស។",
+  footerEmail: "info@somlengkhmer.com",
+  footerPhone: "+855 12 345 678",
+  footerPhoneTel: "+85512345678",
+  footerAddress: "ភ្នំពេញ, ព្រះរាជាណាចក្រកម្ពុជា",
+  footerRights: "រក្សាសិទ្ធិគ្រប់យ៉ាង",
 } as const;
 
 export function jobStatusLabel(status: JobStatus): string {

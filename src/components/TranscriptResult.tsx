@@ -63,7 +63,7 @@ function SpeakerConversation({ segments }: { segments: Segment[] }) {
               </span>
             )}
           </div>
-          <p className="khmer-text text-lg leading-relaxed text-text md:text-xl" dir="auto">
+          <p className="khmer-text text-base leading-relaxed text-text md:text-lg" dir="auto">
             {seg.text}
           </p>
         </article>
@@ -74,7 +74,7 @@ function SpeakerConversation({ segments }: { segments: Segment[] }) {
 
 function PlainTranscript({ text }: { text: string }) {
   return (
-    <p className="khmer-text text-xl leading-relaxed text-text md:text-2xl" dir="auto">
+    <p className="khmer-text text-lg leading-relaxed text-text md:text-xl" dir="auto">
       {text || <span className="text-text-muted italic">{km.noSpeech}</span>}
     </p>
   );
@@ -173,7 +173,7 @@ export function TranscriptResult({
   if (embedded) {
     return (
       <div className="animate-in space-y-6">
-        <div className="gov-card p-6">
+        <div className="gov-card p-5">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <p className="khmer-text text-xs text-text-muted">{resultMeta(result)}</p>
@@ -203,7 +203,7 @@ export function TranscriptResult({
 
   return (
     <div className="animate-in space-y-4">
-      <div className="gov-card p-6">
+      <div className="gov-card p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <div>
             <h3 className="khmer-text text-sm font-semibold text-navy">

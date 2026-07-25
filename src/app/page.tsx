@@ -50,7 +50,7 @@ const STEPS = [
 export default function HomePage() {
   return (
     <SiteLayout>
-      <section className="relative overflow-hidden bg-navy-hero px-4 py-16 sm:px-6 sm:py-24">
+      <section className="relative overflow-hidden bg-navy-hero px-4 py-10 sm:px-6 sm:py-16">
         <div
           className="pointer-events-none absolute inset-0 opacity-40"
           style={{
@@ -90,7 +90,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="features" className="px-4 py-16 sm:px-6 sm:py-20">
+      <section id="features" className="px-4 py-10 sm:px-6 sm:py-14">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="khmer-text text-2xl font-bold text-navy sm:text-3xl">
@@ -99,12 +99,9 @@ export default function HomePage() {
             <p className="khmer-text mt-3 text-text-muted">{km.featuresSubtitle}</p>
           </div>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
-              <div key={f.title} className="gov-card p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-[6px] bg-bg-accent">
-                  <span className="h-2.5 w-2.5 rounded-full bg-gold" />
-                </div>
+              <div key={f.title} className="gov-card p-5">
                 <h3 className="khmer-text text-lg font-semibold text-navy">
                   {f.title}
                 </h3>
@@ -117,7 +114,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-bg px-4 py-16 sm:px-6 sm:py-20">
+      <section id="how-it-works" className="bg-bg px-4 py-10 sm:px-6 sm:py-14">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="khmer-text text-2xl font-bold text-navy sm:text-3xl">
@@ -126,11 +123,11 @@ export default function HomePage() {
             <p className="khmer-text mt-3 text-text-muted">{km.stepsSubtitle}</p>
           </div>
 
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
             {STEPS.map((s) => (
               <div
                 key={s.step}
-                className="relative rounded-[6px] border border-border bg-bg-subtle p-6"
+                className="relative rounded-[6px] border border-border bg-bg-subtle p-5"
               >
                 <span className="khmer-text text-3xl font-bold text-gold/80">
                   {s.step}
@@ -145,8 +142,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="px-4 py-16 sm:px-6 sm:py-20">
-        <div className="mx-auto max-w-4xl overflow-hidden rounded-[6px] bg-navy px-6 py-12 text-center sm:px-12">
+      <section className="px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto max-w-4xl overflow-hidden rounded-[6px] bg-navy px-6 py-8 text-center sm:px-10">
           <h2 className="khmer-text text-2xl font-bold text-white sm:text-3xl">
             ចាប់ផ្តើមបម្លែងសំឡេងរបស់អ្នកឥឡូវនេះ
           </h2>

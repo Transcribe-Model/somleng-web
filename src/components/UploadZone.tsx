@@ -54,7 +54,7 @@ export function UploadZone({
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={[
-        "cursor-pointer rounded-[6px] border-2 border-dashed p-8 text-center transition-all",
+        "cursor-pointer rounded-[6px] border-2 border-dashed p-6 text-center transition-all",
         dragging
           ? "border-navy bg-bg-accent"
           : "border-border-strong bg-bg-subtle hover:border-navy/40 hover:bg-bg-accent/50",
@@ -70,7 +70,7 @@ export function UploadZone({
         onChange={(e) => handleFiles(e.target.files)}
       />
 
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-bg-accent">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-bg-accent">
         <svg
           className="h-7 w-7 text-navy"
           fill="none"
