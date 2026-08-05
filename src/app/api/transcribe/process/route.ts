@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { Storage } from "@google-cloud/storage";
 import { v2 as speech } from "@google-cloud/speech";
-import { v4 as uuidv4 } from "uuid";
 
-// Initialize Supabase Admin
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co";
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy";
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -17,18 +14,14 @@ if (process.env.GCP_CREDENTIALS_JSON) {
   gcpOptions.projectId = process.env.GCP_PROJECT_ID;
 }
 
-const storage = new Storage(gcpOptions.credentials ? { credentials: gcpOptions.credentials, projectId: gcpOptions.projectId } : undefined);
 const speechClient = new speech.SpeechClient(gcpOptions);
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    const language = formData.get("language") as string | null;
-    const enableDiarization = formData.get("enable_diarization") === "true";
+    const { gcsFileName, language, model: reqModel, enableDiarization, originalFilename } = await req.json();
 
-    if (!file) {
-      return NextResponse.json({ detail: "No file provided" }, { status: 400 });
+    if (!gcsFileName) {
+      return NextResponse.json({ detail: "No gcsFileName provided" }, { status: 400 });
     }
 
     const bucketName = process.env.GCP_GCS_BUCKET;
@@ -39,17 +32,7 @@ export async function POST(req: NextRequest) {
     const projectId = process.env.GCP_PROJECT_ID;
     const location = process.env.GCP_LOCATION || "us";
     const languageCode = language || process.env.GCP_LANGUAGE_CODE || "km-KH";
-    const model = process.env.GCP_MODEL || "chirp_3";
-
-    // Upload to GCP Storage
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const gcsFileName = `transcribe/${uuidv4()}-${file.name}`;
-    const gcsBucket = storage.bucket(bucketName);
-    const gcsFile = gcsBucket.file(gcsFileName);
-
-    await gcsFile.save(buffer, {
-      contentType: file.type || "audio/mpeg",
-    });
+    const model = reqModel || process.env.GCP_MODEL || "chirp_3";
 
     const gcsUri = `gs://${bucketName}/${gcsFileName}`;
 
@@ -91,7 +74,7 @@ export async function POST(req: NextRequest) {
         language: languageCode,
         model: model,
         audio_path: gcsFileName,
-        original_filename: file.name,
+        original_filename: originalFilename,
         engine: "gcp",
         enable_diarization: enableDiarization,
         error_message: operation.name, // HACK: store operation name while processing
@@ -106,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ id: job.id, status: job.status });
   } catch (error: any) {
-    console.error("Upload error:", error);
+    console.error("Process error:", error);
     return NextResponse.json({ detail: error.message }, { status: 500 });
   }
 }

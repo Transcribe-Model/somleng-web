@@ -27,12 +27,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
   const configured = isSupabaseConfigured();
-
+  const [loading, setLoading] = useState(configured);
   useEffect(() => {
     if (!configured) {
-      setLoading(false);
       return;
     }
 

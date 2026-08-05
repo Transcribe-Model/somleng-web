@@ -21,7 +21,7 @@ export function JobProgress({
   progressPercent,
   startedAt,
 }: JobProgressProps) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);

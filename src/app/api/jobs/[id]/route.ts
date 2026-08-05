@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       const opName = job.error_message;
       try {
         const [op] = await speechClient.operationsClient.getOperation({ name: opName } as any);
-        let progress = 50;
+        const progress = 50;
 
         if (op.done) {
           if (op.error) {
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
             const jsonFile = files.find(f => f.name.endsWith(".json") && f.name.includes(searchKey));
             
             let fullText = "";
-            let segments: any[] = [];
+            const segments: any[] = [];
             let durationSeconds = 0;
 
             if (jsonFile) {

@@ -62,19 +62,37 @@ export async function transcribeUpload(
     enableDiarization?: boolean;
   },
 ): Promise<JobCreateResponse> {
-  const form = new FormData();
-  form.append("file", file);
-  if (options?.language) form.append("language", options.language);
-  if (options?.model) form.append("model", options.model);
-  if (options?.enableDiarization) {
-    form.append("enable_diarization", "true");
+  // 1. Get Signed URL
+  const urlRes = await authFetch(`${API_URL}/transcribe/upload-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, contentType: file.type }),
+  });
+  const { url, gcsFileName } = await handleResponse<{ url: string; gcsFileName: string }>(urlRes);
+
+  // 2. Upload directly to GCS
+  const uploadRes = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "audio/mpeg" },
+    body: file,
+  });
+  if (!uploadRes.ok) {
+    throw new Error("Failed to upload audio to Google Cloud Storage");
   }
 
-  const res = await authFetch(`${API_URL}/transcribe/upload`, {
+  // 3. Process
+  const processRes = await authFetch(`${API_URL}/transcribe/process`, {
     method: "POST",
-    body: form,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      gcsFileName,
+      originalFilename: file.name,
+      language: options?.language,
+      model: options?.model,
+      enableDiarization: options?.enableDiarization,
+    }),
   });
-  return handleResponse<JobCreateResponse>(res);
+  return handleResponse<JobCreateResponse>(processRes);
 }
 
 export async function fetchJob(jobId: string): Promise<JobResponse> {
