@@ -12,19 +12,19 @@ import {
   transcribeUpload,
 } from "@/lib/api";
 import type { JobStatus, JobSummary, TranscribeResponse } from "@/types/transcribe";
-import { km } from "@/lib/km";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { AudioPlayer } from "./AudioPlayer";
 import { HistorySidebar } from "./HistorySidebar";
 import { JobProgress } from "./JobProgress";
 import { TranscriptResult, formatTranscriptForCopy } from "./TranscriptResult";
 import { UploadZone } from "./UploadZone";
 
-const LANGUAGES = [
-  { code: "km-KH", label: km.languageKhmer },
-  { code: "en-US", label: km.languageEnglish },
-];
-
 export function TranscribeApp() {
+  const { text: t, language: appLanguage } = useLanguage();
+  const LANGUAGES = [
+    { code: "km-KH", label: t.languageKhmer },
+    { code: "en-US", label: t.languageEnglish },
+  ];
   const [serviceOk, setServiceOk] = useState(true);
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
   const [language, setLanguage] = useState("km-KH");
@@ -73,7 +73,7 @@ export function TranscribeApp() {
         setResult(jobToTranscribeResponse(job));
       } else if (job.status === "failed") {
         setResult(null);
-        setError(job.error_message ?? km.transcriptionFailed);
+        setError(job.error_message ?? t.transcriptionFailed);
       } else {
         setResult(null);
       }
@@ -88,7 +88,7 @@ export function TranscribeApp() {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : km.loadFailed);
+      setError(e instanceof Error ? e.message : t.loadFailed);
     } finally {
       setDetailLoading(false);
     }
@@ -103,10 +103,10 @@ export function TranscribeApp() {
         setDiarizationReady(Boolean(h.diarization));
         if (!ready) {
           const missing = [
-            !h.gcp && km.gcpMissing,
-            !h.supabase && km.supabaseMissing,
+            !h.gcp && t.gcpMissing,
+            !h.supabase && t.supabaseMissing,
           ].filter(Boolean);
-          setServiceMessage(km.serviceNotReady(missing.join(", ")));
+          setServiceMessage(t.serviceNotReady(missing.join(", ")));
         } else {
           setServiceMessage(null);
           await loadHistory();
@@ -114,12 +114,12 @@ export function TranscribeApp() {
         if (h.gcp_language) setLanguage(h.gcp_language);
       } catch {
         setServiceOk(false);
-        setServiceMessage(km.apiUnreachable);
+        setServiceMessage(t.apiUnreachable);
         setHistoryLoading(false);
       }
     }
     init();
-  }, [loadHistory]);
+  }, [loadHistory, t]);
 
   useEffect(() => {
     const hasActive = history.some(
@@ -158,7 +158,7 @@ export function TranscribeApp() {
       });
 
       if (job.status === "failed") {
-        throw new Error(job.error_message ?? km.transcriptionFailed);
+        throw new Error(job.error_message ?? t.transcriptionFailed);
       }
 
       setResult(jobToTranscribeResponse(job));
@@ -172,7 +172,7 @@ export function TranscribeApp() {
         setAudioUrl(null);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : km.transcriptionFailed);
+      setError(e instanceof Error ? e.message : t.transcriptionFailed);
       setJobStatus(null);
       setJobProgress(0);
       setJobStartedAt(null);
@@ -211,7 +211,7 @@ export function TranscribeApp() {
         }
         await loadHistory(true);
       } catch (e) {
-        setError(e instanceof Error ? e.message : km.deleteFailed);
+        setError(e instanceof Error ? e.message : t.deleteFailed);
         throw e;
       }
     },
@@ -220,12 +220,12 @@ export function TranscribeApp() {
 
   const handleCopy = useCallback(async () => {
     if (!result) return;
-    const text = formatTranscriptForCopy(result);
+    const text = formatTranscriptForCopy(result, t);
     if (!text) return;
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [result]);
+  }, [result, t]);
 
   const showRightLoading = loading || detailLoading;
   const showEmpty =
@@ -237,16 +237,16 @@ export function TranscribeApp() {
       <aside className="flex w-full shrink-0 flex-col border-b border-border bg-bg lg:w-[min(28rem,38vw)] lg:border-b-0 lg:border-r">
         <div className="border-b border-border px-6 py-5">
           <h2 className="khmer-text text-lg font-semibold text-navy">
-            បញ្ចូលឯកសារសំឡេង
+            {t.uploadTitle}
           </h2>
           <p className="khmer-text mt-1 text-sm text-text-muted">
-            {km.uploadSubtitle}
+            {t.uploadSubtitle}
           </p>
         </div>
 
         <div className="flex flex-col gap-6 overflow-y-auto px-6 py-6">
           <label className="block space-y-1.5">
-            <span className="khmer-text text-sm font-medium text-text">{km.language}</span>
+            <span className="khmer-text text-sm font-medium text-text">{t.language}</span>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -271,14 +271,14 @@ export function TranscribeApp() {
             />
             <span className="min-w-0">
               <span className="khmer-text block text-sm font-medium text-text">
-                {km.detectSpeakers}
+                {t.detectSpeakers}
               </span>
               <span className="khmer-text mt-0.5 block text-xs text-text-muted">
-                {km.detectSpeakersHint}
+                {t.detectSpeakersHint}
               </span>
               {enableDiarization && !diarizationReady && (
                 <span className="khmer-text mt-1 block text-xs text-amber-800">
-                  {km.detectSpeakersUnavailableService}
+                  {t.detectSpeakersUnavailableService}
                 </span>
               )}
             </span>
@@ -296,7 +296,7 @@ export function TranscribeApp() {
             disabled={!file || loading || !serviceOk}
             className="btn-primary"
           >
-            {loading ? km.working : km.transcribe}
+            {loading ? t.working : t.transcribe}
           </button>
 
           {!serviceOk && serviceMessage && (
@@ -320,10 +320,10 @@ export function TranscribeApp() {
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-bg px-6 py-5">
           <div>
             <h2 className="khmer-text text-lg font-semibold text-navy">
-              លទ្ធផលបម្លែង
+              {t.resultTitle}
             </h2>
             <p className="khmer-text mt-1 text-sm text-text-muted">
-              {km.resultSubtitle}
+              {t.resultSubtitle}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -332,7 +332,7 @@ export function TranscribeApp() {
               onClick={handleOpenHistory}
               className="btn-secondary khmer-text shrink-0"
             >
-              {km.historyTitle}
+              {t.historyTitle}
             </button>
           </div>
         </div>
@@ -352,10 +352,10 @@ export function TranscribeApp() {
             <div className="flex h-full min-h-[16rem] flex-col items-center justify-center text-center">
               <span className="h-10 w-10 animate-spin rounded-full border-2 border-navy/20 border-t-navy" />
               <p className="khmer-text mt-4 text-base font-medium text-navy">
-                {loading ? km.transcribing : km.loading}
+                {loading ? t.transcribing : t.loading}
               </p>
               <p className="khmer-text mt-1 text-sm text-text-muted">
-                {loading ? km.waitProcessing : km.loadingTranscription}
+                {loading ? t.waitProcessing : t.loadingTranscription}
               </p>
             </div>
           ) : (
@@ -395,10 +395,10 @@ export function TranscribeApp() {
                     </svg>
                   </div>
                   <p className="khmer-text text-base font-medium text-navy">
-                    {km.noResult}
+                    {t.noResult}
                   </p>
                   <p className="khmer-text mt-1 max-w-sm text-sm text-text-muted">
-                    {km.noResultHint}
+                    {t.noResultHint}
                   </p>
                 </div>
               ) : null}

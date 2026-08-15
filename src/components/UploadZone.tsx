@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { km } from "@/lib/km";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface UploadZoneProps {
   onFileSelect: (file: File) => void;
@@ -16,6 +16,7 @@ export function UploadZone({
   disabled,
   selectedFile,
 }: UploadZoneProps) {
+  const { text: t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -90,13 +91,13 @@ export function UploadZone({
         <>
           <p className="font-semibold text-text">{selectedFile.name}</p>
           <p className="khmer-text mt-1 text-sm text-text-muted">
-            {(selectedFile.size / 1024).toFixed(1)} KB — {km.changeFile}
+            {(selectedFile.size / 1024).toFixed(1)} KB — {t.changeFile}
           </p>
         </>
       ) : (
         <>
-          <p className="khmer-text font-semibold text-text">{km.dropAudio}</p>
-          <p className="khmer-text mt-1 text-sm text-text-muted">{km.browseAudio}</p>
+          <p className="khmer-text font-semibold text-text">{t.dropAudio}</p>
+          <p className="khmer-text mt-1 text-sm text-text-muted">{t.browseAudio}</p>
         </>
       )}
     </div>

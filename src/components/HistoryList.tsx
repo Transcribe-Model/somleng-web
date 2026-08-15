@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { formatDate, formatTimestamp } from "@/lib/api";
-import { jobStatusBadge, km } from "@/lib/km";
+import { jobStatusBadge } from "@/lib/km";
 import {
   estimateRemainingSeconds,
   formatEtaSeconds,
@@ -63,6 +64,7 @@ export function HistoryList({
   onSelect,
   onDelete,
 }: HistoryListProps) {
+  const { text: t } = useLanguage();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<JobSummary | null>(null);
 
@@ -95,7 +97,7 @@ export function HistoryList({
   if (jobs.length === 0) {
     return (
       <p className="khmer-text px-2 py-4 text-center text-sm text-text-muted">
-        {km.noHistory}
+        {t.noHistory}
       </p>
     );
   }
@@ -104,11 +106,11 @@ export function HistoryList({
     <>
       <ConfirmDialog
         open={pendingDelete != null}
-        title={km.deleteTitle}
-        message={km.deleteConfirm}
-        detail={pendingDelete?.original_filename ?? km.untitledAudio}
-        confirmLabel={km.delete}
-        cancelLabel={km.cancel}
+        title={t.deleteTitle}
+        message={t.deleteConfirm}
+        detail={pendingDelete?.original_filename ?? t.untitledAudio}
+        confirmLabel={t.delete}
+        cancelLabel={t.cancel}
         loading={deletingId != null}
         onConfirm={() => void confirmDelete()}
         onCancel={() => {
@@ -150,7 +152,7 @@ export function HistoryList({
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="truncate text-sm font-medium text-navy">
-                    {job.original_filename ?? km.untitledAudio}
+                    {job.original_filename ?? t.untitledAudio}
                   </p>
                   <span
                     className={[
@@ -175,11 +177,11 @@ export function HistoryList({
                   <div className="mt-3">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                       <span className="khmer-text text-xs text-text-muted">
-                        {km.progressLabel(percent)}
+                        {t.progressLabel(percent)}
                       </span>
                       {eta != null && (
                         <span className="khmer-text text-xs text-text-muted">
-                          {km.estimatedRemaining(formatEtaSeconds(eta))}
+                          {t.estimatedRemaining(formatEtaSeconds(eta))}
                         </span>
                       )}
                     </div>
@@ -203,8 +205,8 @@ export function HistoryList({
                 type="button"
                 onClick={() => requestDelete(job)}
                 disabled={isDeleting || deletingId != null}
-                aria-label={km.delete}
-                title={km.delete}
+                aria-label={t.delete}
+                title={t.delete}
                 className="khmer-text mt-3 mr-2 shrink-0 rounded p-2 text-text-muted transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
               >
                 {isDeleting ? (

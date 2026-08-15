@@ -139,6 +139,146 @@ export const km = {
   footerRights: "រក្សាសិទ្ធិគ្រប់យ៉ាង",
 } as const;
 
+export const en = {
+  email: "Email",
+  password: "Password",
+  confirmPassword: "Confirm password",
+  signIn: "Sign in",
+  signOut: "Sign out",
+  register: "Register",
+  signingIn: "Signing in...",
+  creatingAccount: "Creating account...",
+  noAccount: "No account yet?",
+  hasAccount: "Already have an account?",
+  createAccount: "Create account",
+  account: "Account",
+  menu: "Open menu",
+
+  loginTitle: "Sign in",
+  loginSubtitle: "Use your email and password to continue",
+  registerTitle: "Create account",
+  registerSubtitle: "Create an account to save transcripts and history",
+  authWelcome: "Accurate Khmer speech-to-text transcription",
+  authTagline: "A reliable speech transcription service for Khmer audio",
+
+  passwordMismatch: "Passwords do not match",
+  passwordTooShort: "Password must be at least 6 characters",
+  loginFailed: "Sign in failed",
+  registerFailed: "Account creation failed",
+
+  authNotConfigured:
+    "Authentication is not configured yet. Check NEXT_PUBLIC_SUPABASE_ANON_KEY in web/.env.local and restart npm run dev",
+  authWrongKey:
+    "You are using the wrong secret/service role key. Use the publishable key (sb_publishable_...) in web/.env.local",
+  invalidCredentials: "Email or password is incorrect",
+  emailAlreadyRegistered: "This email is already registered",
+  emailNotConfirmed: "Please confirm your email before signing in",
+  emailRateLimit:
+    "Too many emails sent. Please wait 15–60 minutes and try again",
+
+  language: "Language",
+  languageKhmer: "Khmer",
+  languageEnglish: "English",
+
+  uploadTitle: "Upload audio",
+  uploadSubtitle:
+    "Upload your audio file — short clips process quickly, long recordings run in the background",
+  transcribe: "Transcribe",
+  working: "Working...",
+  copyText: "Copy text",
+  copied: "Copied",
+
+  historyTitle: "Transcription history",
+  historySubtitle: "Previous transcriptions — click to listen and review",
+  closeHistory: "Close",
+  noHistory: "No transcription history yet",
+  untitledAudio: "Untitled audio",
+
+  resultTitle: "Transcription result",
+  resultSubtitle: "Your transcription result will appear here",
+  noResult: "No result yet",
+  noResultHint:
+    "Upload an audio file on the left and click transcription or open history to view previous results",
+  transcribing: "Transcribing audio...",
+  loading: "Loading...",
+  waitProcessing: "Please wait while your audio is being processed",
+  loadingTranscription: "Loading transcription result...",
+
+  transcriptionFailed: "Transcription failed",
+  loadFailed: "Could not load transcription result",
+  serviceNotReady: (missing: string) =>
+    `The service is not ready yet — missing: ${missing}. Check transcribe_service/.env`,
+  apiUnreachable:
+    "Could not reach the transcription API. Run: cd transcribe_service && python run.py",
+  gcpMissing: "Transcription service",
+  supabaseMissing: "Database",
+
+  dropAudio: "Drop your audio here",
+  browseAudio: "or click to browse — supports MP3, WAV, M4A, FLAC",
+  changeFile: "Click to change file",
+
+  originalAudio: "Original audio",
+  audioUnsupported: "Your browser does not support audio playback",
+  noSpeech: "No speech detected",
+  segments: "Segments",
+  detectSpeakers: "Detect speakers",
+  detectSpeakersHint:
+    "Separate speakers 1 / 2 — processed with Khmer language support (may take longer)",
+  detectSpeakersUnavailableService:
+    "Speaker detection is not ready yet — check HUGGINGFACE_TOKEN and restart the API",
+  speakerLabel: (id: string) => `Speaker ${id}`,
+  unknownSpeaker: "Speaker",
+  speakerTranscript: "Speaker transcript",
+  speakerCount: (n: number) => `${n} speakers`,
+  transcriptionResult: "Transcription result",
+
+  longAudioHint:
+    "Long recordings may take up to 30 minutes or more. You can leave this tab open while it works.",
+  progressLabel: (percent: number) => `${percent}%`,
+  estimatedRemaining: (time: string) => `Estimated ${time}`,
+  calculatingEta: "Calculating time remaining...",
+  delete: "Delete",
+  deleteTitle: "Delete transcription",
+  deleteConfirm:
+    "Are you sure you want to delete this transcription? This action cannot be undone.",
+  deleteFailed: "Deletion failed",
+  deleting: "Deleting...",
+  cancel: "Cancel",
+
+  heroTagline: "Khmer speech transcription",
+  featuresSubtitle:
+    "Everything you need to transcribe Khmer audio with clarity and accuracy",
+  stepsSubtitle: "Only 3 simple steps to get your transcript",
+  ctaSubtitle:
+    "Upload your audio file and get an accurate Khmer transcript in minutes",
+  learnMore: "Learn more",
+  getStarted: "Get started",
+  getStartedTranscribe: "Start transcription",
+  getStartedNow: "Get started now",
+  startTranscribe: "Start transcription",
+
+  home: "Home",
+  transcribeNav: "Transcribe",
+  navFeatures: "Features",
+  navHow: "How it works",
+  searchAria: "Search",
+  pages: "Pages",
+  info: "Information",
+  languagesInfo: "Languages: Khmer · English",
+  durationInfo: "Duration: up to 1 hour",
+  footerAbout: "About",
+  footerNews: "News",
+  footerArticles: "Articles",
+  footerContact: "Contact",
+  footerTagline:
+    "Reliable and fast Khmer speech-to-text service that turns audio into accurate written text.",
+  footerEmail: "info@somlengkhmer.com",
+  footerPhone: "+855 12 345 678",
+  footerPhoneTel: "+85512345678",
+  footerAddress: "Phnom Penh, Cambodia",
+  footerRights: "All rights reserved",
+} as const;
+
 export function jobStatusLabel(status: JobStatus): string {
   switch (status) {
     case "queued":

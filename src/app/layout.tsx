@@ -27,7 +27,6 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="km"
       className={`${kantumruy.variable} ${notoKhmer.variable} h-full antialiased`}
     >
       <body className="min-h-full">

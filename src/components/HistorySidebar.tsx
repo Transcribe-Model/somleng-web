@@ -1,7 +1,7 @@
 "use client";
 
 import { HistoryList } from "@/components/HistoryList";
-import { km } from "@/lib/km";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { JobSummary } from "@/types/transcribe";
 
 interface HistorySidebarProps {
@@ -23,13 +23,14 @@ export function HistorySidebar({
   onSelect,
   onDelete,
 }: HistorySidebarProps) {
+  const { text: t } = useLanguage();
   if (!open) return null;
 
   return (
     <>
       <button
         type="button"
-        aria-label={km.closeHistory}
+        aria-label={t.closeHistory}
         className="fixed inset-0 z-40 bg-navy/20 backdrop-blur-[1px] lg:bg-navy/10"
         onClick={onClose}
       />
@@ -46,19 +47,19 @@ export function HistorySidebar({
               id="history-sidebar-title"
               className="khmer-text text-lg font-semibold text-navy"
             >
-              {km.historyTitle}
+              {t.historyTitle}
             </h2>
             <p className="khmer-text mt-1 text-sm text-text-muted">
-              {km.historySubtitle}
+              {t.historySubtitle}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="btn-secondary khmer-text shrink-0 px-3 py-2"
-            aria-label={km.closeHistory}
+            aria-label={t.closeHistory}
           >
-            {km.closeHistory}
+            {t.closeHistory}
           </button>
         </div>
 

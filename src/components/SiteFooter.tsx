@@ -1,39 +1,41 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { km } from "@/lib/km";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const FOOTER_COLS = [
-  {
-    title: km.footerNews,
-    links: [
-      { href: "/", label: km.home },
-      { href: "/#features", label: km.navFeatures },
-      { href: "/#how-it-works", label: km.navHow },
-      { href: "/transcribe", label: km.transcribeNav },
-      { href: "/login", label: km.signIn },
-    ],
-  },
-  {
-    title: km.footerArticles,
-    links: [
-      { href: "/#features", label: km.navFeatures },
-      { href: "/transcribe", label: km.transcribeNav },
-      { href: "/register", label: km.register },
-      { href: "/#how-it-works", label: km.navHow },
-      { href: "/", label: km.home },
-    ],
-  },
-  {
-    title: km.footerAbout,
-    links: [
-      { href: "/", label: km.home },
-      { href: "/#features", label: km.navFeatures },
-      { href: "/login", label: km.signIn },
-      { href: "/register", label: km.register },
-    ],
-  },
-] as const;
+function getFooterColumns(t: ReturnType<typeof useLanguage>["text"]) {
+  return [
+    {
+      title: t.footerNews,
+      links: [
+        { href: "/", label: t.home },
+        { href: "/#features", label: t.navFeatures },
+        { href: "/#how-it-works", label: t.navHow },
+        { href: "/transcribe", label: t.transcribeNav },
+        { href: "/login", label: t.signIn },
+      ],
+    },
+    {
+      title: t.footerArticles,
+      links: [
+        { href: "/#features", label: t.navFeatures },
+        { href: "/transcribe", label: t.transcribeNav },
+        { href: "/register", label: t.register },
+        { href: "/#how-it-works", label: t.navHow },
+        { href: "/", label: t.home },
+      ],
+    },
+    {
+      title: t.footerAbout,
+      links: [
+        { href: "/", label: t.home },
+        { href: "/#features", label: t.navFeatures },
+        { href: "/login", label: t.signIn },
+        { href: "/register", label: t.register },
+      ],
+    },
+  ] as const;
+}
 
 function SocialIcon({
   href,
@@ -68,6 +70,8 @@ function ColumnTitle({ children }: { children: ReactNode }) {
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const { text: t } = useLanguage();
+  const FOOTER_COLS = getFooterColumns(t);
 
   return (
     <footer className="bg-navy text-white">
@@ -84,7 +88,7 @@ export function SiteFooter() {
               />
             </Link>
             <p className="khmer-text mt-4 max-w-xs text-sm leading-relaxed text-white/70">
-              {km.footerTagline}
+              {t.footerTagline}
             </p>
             <div className="mt-5 flex flex-wrap gap-2.5">
               <SocialIcon href="https://facebook.com" label="Facebook">
@@ -129,22 +133,22 @@ export function SiteFooter() {
           ))}
 
           <div className="lg:col-span-3">
-            <ColumnTitle>{km.footerContact}</ColumnTitle>
+            <ColumnTitle>{t.footerContact}</ColumnTitle>
             <ul className="mt-4 space-y-3 text-sm text-white/65">
               <li className="flex items-start gap-2.5">
                 <svg className="mt-0.5 h-4 w-4 shrink-0 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <a href={`mailto:${km.footerEmail}`} className="transition hover:text-gold">
-                  {km.footerEmail}
+                <a href={`mailto:${t.footerEmail}`} className="transition hover:text-gold">
+                  {t.footerEmail}
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
                 <svg className="mt-0.5 h-4 w-4 shrink-0 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.5 4.49a1 1 0 01-.5 1.21l-2.26 1.13a11.04 11.04 0 005.52 5.52l1.13-2.26a1 1 0 011.21-.5l4.49 1.5a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.72 21 3 14.28 3 6V5z" />
                 </svg>
-                <a href={`tel:${km.footerPhoneTel}`} className="transition hover:text-gold">
-                  {km.footerPhone}
+                <a href={`tel:${t.footerPhoneTel}`} className="transition hover:text-gold">
+                  {t.footerPhone}
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
@@ -152,7 +156,7 @@ export function SiteFooter() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="khmer-text">{km.footerAddress}</span>
+                <span className="khmer-text">{t.footerAddress}</span>
               </li>
             </ul>
           </div>
@@ -165,7 +169,7 @@ export function SiteFooter() {
             <span className="h-px flex-1 bg-white/15" />
           </div>
           <p className="khmer-text text-xs text-white/45">
-            © {year} សម្លេងខ្មែរ | {km.footerRights}
+            © {year} សម្លេងខ្មែរ | {t.footerRights}
           </p>
         </div>
       </div>

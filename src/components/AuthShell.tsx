@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
-import { km } from "@/lib/km";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AuthShellProps {
   mode: "login" | "register";
@@ -13,6 +13,7 @@ interface AuthShellProps {
 
 export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
   const isLogin = mode === "login";
+  const { text: t } = useLanguage();
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
@@ -28,9 +29,9 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
         <div className="relative flex max-w-md flex-col items-center text-center">
           <BrandLogo size="lg" href="/" onDark />
           <p className="khmer-text mt-8 text-lg leading-relaxed text-text-light">
-            {km.authWelcome}
+            {t.authWelcome}
           </p>
-          <p className="khmer-text mt-3 text-sm text-white/60">{km.authTagline}</p>
+          <p className="khmer-text mt-3 text-sm text-white/60">{t.authTagline}</p>
         </div>
       </aside>
 
@@ -46,7 +47,7 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
                 : "text-text-muted hover:bg-bg-subtle hover:text-navy",
             ].join(" ")}
           >
-            {km.signIn}
+            {t.signIn}
           </Link>
           <Link
             href="/register"
@@ -57,7 +58,7 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
                 : "bg-navy text-white ring-2 ring-gold/50",
             ].join(" ")}
           >
-            {km.register}
+            {t.register}
           </Link>
         </div>
 

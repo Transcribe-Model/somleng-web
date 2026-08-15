@@ -1,20 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage, type TranslationText } from "@/contexts/LanguageContext";
 import { formatTimestamp } from "@/lib/api";
 import type { Segment, TranscribeResponse } from "@/types/transcribe";
 import { km } from "@/lib/km";
 
-function formatLanguage(code: string | null): string {
+function formatLanguage(code: string | null, langText: TranslationText = km): string {
   if (!code) return "";
-  if (code.startsWith("km")) return km.languageKhmer;
-  if (code.startsWith("en")) return km.languageEnglish;
+  if (code.startsWith("km")) return langText.languageKhmer;
+  if (code.startsWith("en")) return langText.languageEnglish;
   return code;
 }
 
-function resultMeta(result: TranscribeResponse): string {
+function resultMeta(result: TranscribeResponse, langText: TranslationText = km): string {
   const parts: string[] = [];
-  const lang = formatLanguage(result.language);
+  const lang = formatLanguage(result.language, langText);
   if (lang) parts.push(lang);
   if (result.duration_seconds != null) {
     parts.push(formatTimestamp(result.duration_seconds));
@@ -23,7 +24,7 @@ function resultMeta(result: TranscribeResponse): string {
     result.segments.map((s) => s.speaker).filter(Boolean),
   );
   if (speakers.size > 0) {
-    parts.push(km.speakerCount(speakers.size));
+    parts.push(langText.speakerCount(speakers.size));
   }
   return parts.join(" · ");
 }
@@ -41,7 +42,7 @@ function speakerAccent(speaker: string | null | undefined): string {
   return "border-navy/20 bg-navy/5 text-navy";
 }
 
-function SpeakerConversation({ segments }: { segments: Segment[] }) {
+function SpeakerConversation({ segments, langText }: { segments: Segment[]; langText: TranslationText }) {
   return (
     <div className="space-y-4">
       {segments.map((seg, i) => (
@@ -54,7 +55,7 @@ function SpeakerConversation({ segments }: { segments: Segment[] }) {
         >
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="khmer-text text-sm font-semibold">
-              {seg.speaker ? km.speakerLabel(seg.speaker) : km.unknownSpeaker}
+              {seg.speaker ? langText.speakerLabel(seg.speaker) : langText.unknownSpeaker}
             </span>
             {(seg.start != null || seg.end != null) && (
               <span className="font-mono text-xs text-text-muted">
@@ -72,15 +73,15 @@ function SpeakerConversation({ segments }: { segments: Segment[] }) {
   );
 }
 
-function PlainTranscript({ text }: { text: string }) {
+function PlainTranscript({ text, langText }: { text: string; langText: TranslationText }) {
   return (
     <p className="khmer-text text-lg leading-relaxed text-text md:text-xl" dir="auto">
-      {text || <span className="text-text-muted italic">{km.noSpeech}</span>}
+      {text || <span className="text-text-muted italic">{langText.noSpeech}</span>}
     </p>
   );
 }
 
-function SegmentsDropdown({ result }: { result: TranscribeResponse }) {
+function SegmentsDropdown({ result, langText }: { result: TranscribeResponse; langText: TranslationText }) {
   const [open, setOpen] = useState(false);
   if (result.segments.length === 0) return null;
   if (hasSpeakerLabels(result.segments)) return null;
@@ -94,7 +95,7 @@ function SegmentsDropdown({ result }: { result: TranscribeResponse }) {
         className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition hover:bg-bg-subtle"
       >
         <span className="khmer-text text-sm font-semibold text-navy">
-          {km.segments}
+          {langText.segments}
         </span>
         <span className="flex items-center gap-2">
           <span className="text-xs text-text-muted">{result.segments.length}</span>
@@ -140,11 +141,11 @@ interface TranscriptResultProps {
   embedded?: boolean;
 }
 
-export function formatTranscriptForCopy(result: TranscribeResponse): string {
+export function formatTranscriptForCopy(result: TranscribeResponse, langText: TranslationText = km): string {
   if (hasSpeakerLabels(result.segments)) {
     return result.segments
       .map((seg) => {
-        const who = seg.speaker ? km.speakerLabel(seg.speaker) : km.unknownSpeaker;
+        const who = seg.speaker ? langText.speakerLabel(seg.speaker) : langText.unknownSpeaker;
         const time =
           seg.start != null
             ? `[${formatTimestamp(seg.start)}${seg.end != null ? ` – ${formatTimestamp(seg.end)}` : ""}] `
@@ -162,12 +163,13 @@ export function TranscriptResult({
   copied,
   embedded = false,
 }: TranscriptResultProps) {
+  const { text: langText } = useLanguage();
   const showSpeakers = hasSpeakerLabels(result.segments);
 
   const body = showSpeakers ? (
-    <SpeakerConversation segments={result.segments} />
+    <SpeakerConversation segments={result.segments} langText={langText} />
   ) : (
-    <PlainTranscript text={result.text} />
+    <PlainTranscript text={result.text} langText={langText} />
   );
 
   if (embedded) {
@@ -176,10 +178,10 @@ export function TranscriptResult({
         <div className="gov-card p-5">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
-              <p className="khmer-text text-xs text-text-muted">{resultMeta(result)}</p>
+              <p className="khmer-text text-xs text-text-muted">{resultMeta(result, langText)}</p>
               {showSpeakers && (
                 <p className="khmer-text mt-1 text-sm font-medium text-navy">
-                  {km.speakerTranscript}
+                  {langText.speakerTranscript}
                 </p>
               )}
             </div>
@@ -189,14 +191,14 @@ export function TranscriptResult({
                 onClick={onCopy}
                 className="btn-secondary khmer-text shrink-0 px-3 py-1.5 text-sm"
               >
-                {copied ? km.copied : km.copyText}
+                {copied ? langText.copied : langText.copyText}
               </button>
             )}
           </div>
           {body}
         </div>
 
-        <SegmentsDropdown result={result} />
+        <SegmentsDropdown result={result} langText={langText} />
       </div>
     );
   }
@@ -207,18 +209,18 @@ export function TranscriptResult({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <div>
             <h3 className="khmer-text text-sm font-semibold text-navy">
-              {showSpeakers ? km.speakerTranscript : km.transcriptionResult}
+              {showSpeakers ? langText.speakerTranscript : langText.transcriptionResult}
             </h3>
-            <p className="mt-0.5 text-xs text-text-muted">{resultMeta(result)}</p>
+            <p className="mt-0.5 text-xs text-text-muted">{resultMeta(result, langText)}</p>
           </div>
           <button type="button" onClick={onCopy} className="btn-secondary khmer-text">
-            {copied ? km.copied : km.copyText}
+            {copied ? langText.copied : langText.copyText}
           </button>
         </div>
         {body}
       </div>
 
-      <SegmentsDropdown result={result} />
+      <SegmentsDropdown result={result} langText={langText} />
     </div>
   );
 }

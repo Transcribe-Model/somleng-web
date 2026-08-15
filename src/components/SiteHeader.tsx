@@ -5,16 +5,26 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { km } from "@/lib/km";
+import { useLanguage, type LanguageMode } from "@/contexts/LanguageContext";
 
-const NAV = [
-  { href: "/", label: km.home },
-  { href: "/transcribe", label: km.transcribeNav },
-  { href: "/#features", label: km.navFeatures },
-  { href: "/#how-it-works", label: km.navHow },
-  { href: "/login", label: km.signIn },
-  { href: "/register", label: km.register },
-];
+const NAV: Record<LanguageMode, { href: string; labelKey: keyof ReturnType<typeof useLanguage>["text"] }[]> = {
+  km: [
+    { href: "/", labelKey: "home" },
+    { href: "/transcribe", labelKey: "transcribeNav" },
+    { href: "/#features", labelKey: "navFeatures" },
+    { href: "/#how-it-works", labelKey: "navHow" },
+    { href: "/login", labelKey: "signIn" },
+    { href: "/register", labelKey: "register" },
+  ],
+  en: [
+    { href: "/", labelKey: "home" },
+    { href: "/transcribe", labelKey: "transcribeNav" },
+    { href: "/#features", labelKey: "navFeatures" },
+    { href: "/#how-it-works", labelKey: "navHow" },
+    { href: "/login", labelKey: "signIn" },
+    { href: "/register", labelKey: "register" },
+  ],
+};
 
 function isActive(pathname: string, href: string): boolean {
   if (href.startsWith("/#")) return false;
@@ -26,6 +36,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
+  const { language, setLanguage, text: t } = useLanguage();
   const [open, setOpen] = useState(false);
 
   async function handleSignOut() {
@@ -34,11 +45,13 @@ export function SiteHeader() {
     router.push("/login");
   }
 
-  const navItems = NAV.filter((item) => {
-    if (user && (item.href === "/login" || item.href === "/register")) return false;
-    if (!user && item.href === "/login") return true;
-    return true;
-  });
+  const navItems = NAV[language]
+    .filter((item) => {
+      if (user && (item.href === "/login" || item.href === "/register")) return false;
+      if (!user && item.href === "/login") return true;
+      return true;
+    })
+    .map((item) => ({ ...item, label: String(t[item.labelKey]) }));
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-white">
@@ -82,16 +95,33 @@ export function SiteHeader() {
               onClick={handleSignOut}
               className="khmer-text relative px-3 py-2 text-[0.9375rem] font-medium text-text-muted transition hover:text-navy"
             >
-              {km.signOut}
+              {t.signOut}
             </button>
           )}
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="hidden items-center rounded-full border border-border bg-bg-accent p-1 sm:flex">
+            {(["km", "en"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setLanguage(option)}
+                className={[
+                  "rounded-full px-2.5 py-1 text-xs font-semibold transition",
+                  language === option ? "bg-white text-navy shadow-sm" : "text-text-muted",
+                ].join(" ")}
+                aria-label={option === "km" ? "Switch to Khmer" : "Switch to English"}
+              >
+                {option === "km" ? "ខ្មែរ" : "EN"}
+              </button>
+            ))}
+          </div>
+
           <Link
             href="/transcribe"
             className="flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-bg-accent"
-            aria-label={km.searchAria}
+            aria-label={t.searchAria}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
@@ -101,7 +131,7 @@ export function SiteHeader() {
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-bg-accent lg:hidden"
-            aria-label={km.menu}
+            aria-label={t.menu}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
           >
@@ -120,6 +150,27 @@ export function SiteHeader() {
 
       {open && (
         <div className="border-t border-border bg-white px-4 py-3 lg:hidden">
+          <div className="mb-3 flex items-center justify-end">
+            <div className="inline-flex items-center rounded-full border border-border bg-bg-accent p-1">
+              {(["km", "en"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    setLanguage(option);
+                    setOpen(false);
+                  }}
+                  className={[
+                    "rounded-full px-2.5 py-1 text-xs font-semibold transition",
+                    language === option ? "bg-white text-navy shadow-sm" : "text-text-muted",
+                  ].join(" ")}
+                >
+                  {option === "km" ? "ខ្មែរ" : "EN"}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <nav className="flex flex-col gap-0.5">
             {navItems.map((item) => {
               const active = isActive(pathname, item.href);
@@ -145,7 +196,7 @@ export function SiteHeader() {
                   onClick={handleSignOut}
                   className="khmer-text mt-1 rounded-[6px] px-3 py-2.5 text-left text-sm font-medium text-navy"
                 >
-                  {km.signOut}
+                  {t.signOut}
                 </button>
               </>
             )}

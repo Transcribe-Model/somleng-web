@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
 import { useAuth } from "@/contexts/AuthContext";
-import { km } from "@/lib/km";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { getSupabaseConfigIssue } from "@/lib/supabase";
 
 export default function LoginPage() {
   const { signIn, configured, user, loading: authLoading } = useAuth();
+  const { text: t } = useLanguage();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +31,7 @@ export default function LoginPage() {
       await signIn(email, password);
       router.push("/transcribe");
     } catch (err) {
-      setError(err instanceof Error ? err.message : km.loginFailed);
+      setError(err instanceof Error ? err.message : t.loginFailed);
     } finally {
       setLoading(false);
     }
@@ -39,8 +40,8 @@ export default function LoginPage() {
   return (
     <AuthShell
       mode="login"
-      title={km.loginTitle}
-      subtitle={km.loginSubtitle}
+      title={t.loginTitle}
+      subtitle={t.loginSubtitle}
     >
       {!configured && getSupabaseConfigIssue() && (
         <div className="khmer-text mb-6 rounded-[6px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -50,7 +51,7 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <label className="block space-y-1.5">
-          <span className="khmer-text text-sm font-medium text-text">{km.email}</span>
+          <span className="khmer-text text-sm font-medium text-text">{t.email}</span>
           <input
             type="email"
             required
@@ -63,7 +64,7 @@ export default function LoginPage() {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="khmer-text text-sm font-medium text-text">{km.password}</span>
+          <span className="khmer-text text-sm font-medium text-text">{t.password}</span>
           <input
             type="password"
             required
@@ -86,14 +87,14 @@ export default function LoginPage() {
           disabled={!configured || loading}
           className="btn-primary khmer-text"
         >
-          {loading ? km.signingIn : km.signIn}
+          {loading ? t.signingIn : t.signIn}
         </button>
       </form>
 
       <p className="khmer-text mt-6 text-center text-sm text-text-muted">
-        {km.noAccount}{" "}
+        {t.noAccount}{" "}
         <Link href="/register" className="font-semibold text-navy hover:text-gold">
-          {km.createAccount}
+          {t.createAccount}
         </Link>
       </p>
     </AuthShell>

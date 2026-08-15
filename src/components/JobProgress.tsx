@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { JobStatus } from "@/types/transcribe";
 import { jobStatusLabel } from "@/lib/api";
-import { km } from "@/lib/km";
 import {
   estimateRemainingSeconds,
   formatEtaSeconds,
@@ -21,6 +21,7 @@ export function JobProgress({
   progressPercent,
   startedAt,
 }: JobProgressProps) {
+  const { text: t } = useLanguage();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function JobProgress({
           </p>
         </div>
         <span className="khmer-text shrink-0 text-sm font-semibold text-navy tabular-nums">
-          {km.progressLabel(percent)}
+          {t.progressLabel(percent)}
         </span>
       </div>
 
@@ -59,8 +60,8 @@ export function JobProgress({
 
       <p className="khmer-text mt-2 text-xs text-text-muted">
         {eta != null
-          ? km.estimatedRemaining(formatEtaSeconds(eta))
-          : km.calculatingEta}
+          ? t.estimatedRemaining(formatEtaSeconds(eta))
+          : t.calculatingEta}
       </p>
     </div>
   );
