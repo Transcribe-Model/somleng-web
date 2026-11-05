@@ -120,6 +120,7 @@ export const km = {
 
   home: "ទំព័រដើម",
   transcribeNav: "បម្លែងសំឡេង",
+  ttsNav: "អត្ថបទទៅសំឡេង",
   navFeatures: "លក្ខណៈពិសេស",
   navHow: "របៀបដំណើរការ",
   searchAria: "ស្វែងរក",
@@ -137,6 +138,38 @@ export const km = {
   footerPhoneTel: "+85512345678",
   footerAddress: "ភ្នំពេញ, ព្រះរាជាណាចក្រកម្ពុជា",
   footerRights: "រក្សាសិទ្ធិគ្រប់យ៉ាង",
+
+  ttsTitle: "អត្ថបទទៅសំឡេង",
+  ttsSubtitle: "វាយ ឬបិទភ្ជាប់អត្ថបទ ហើយស្តាប់សំឡេងភាសាខ្មែរ ឬអង់គ្លេស",
+  ttsPlaceholder: "វាយ ឬបិទភ្ជាប់អត្ថបទនៅទីនេះ...",
+  ttsSpeak: "និយាយ",
+  ttsSpeaking: "កំពុងបង្កើតសំឡេង...",
+  ttsDownload: "ទាញយក MP3",
+  ttsResult: "សំឡេងដែលបានបង្កើត",
+  ttsFailed: "ការបង្កើតសំឡេងមិនបានសម្រេច",
+  ttsCharCount: (current: number, max: number) => `${current} / ${max}`,
+  ttsOverLimit: (max: number) => `អត្ថបទមិនអាចលើស ${max} តួអក្សរ`,
+
+  ttsModeLabel: "របៀបសំឡេង",
+  ttsModeDefault: "សំឡេងលំនាំដើម",
+  ttsModeClone: "ចម្លងសំឡេងរបស់ខ្ញុំ",
+  ttsCloneHint:
+    "ថត ឬបញ្ចូលសំឡេងខ្លី (ប្រហែល ៣–១០ វិនាទី) ក្នុងបន្ទប់ស្ងាត់ ដើម្បីចម្លងសំឡេងរបស់អ្នក",
+  ttsCloneUpload: "បញ្ចូលឯកសារសំឡេងយោង",
+  ttsCloneChangeFile: "ផ្លាស់ប្តូរឯកសារ",
+  ttsCloneRecord: "ថតសំឡេង",
+  ttsCloneRecording: "កំពុងថត...",
+  ttsCloneStop: "បញ្ឈប់ការថត",
+  ttsCloneClear: "លុបសំឡេងយោង",
+  ttsCloneConsent:
+    "ខ្ញុំជាម្ចាស់សំឡេងនេះ ហើយអនុញ្ញាតឱ្យប្រើសំឡេងនេះដើម្បីចម្លងសំឡេងសិប្បនិម្មិត",
+  ttsCloneNeedReference: "សូមថត ឬបញ្ចូលសំឡេងយោងមុនពេលនិយាយ",
+  ttsCloneNeedConsent: "សូមយល់ព្រមការអនុញ្ញាតមុនពេលចម្លងសំឡេង",
+  ttsCloneMicDenied: "មិនអាចប្រើមីក្រូហ្វូនបានទេ។ សូមអនុញ្ញាតការចូលប្រើ ឬបញ្ចូលឯកសារជំនួស",
+  ttsCloneUnsupportedMic: "កម្មវិធីរុករករបស់អ្នកមិនគាំទ្រការថតសំឡេង",
+  ttsCloning: "កំពុងចម្លងសំឡេង សូមរង់ចាំ...",
+  ttsCloneFailed: "ការចម្លងសំឡេងមិនបានសម្រេច",
+  ttsClonePreview: "សំឡេងយោង",
 } as const;
 
 export const en = {
@@ -259,6 +292,7 @@ export const en = {
 
   home: "Home",
   transcribeNav: "Transcribe",
+  ttsNav: "Text to speech",
   navFeatures: "Features",
   navHow: "How it works",
   searchAria: "Search",
@@ -277,6 +311,39 @@ export const en = {
   footerPhoneTel: "+85512345678",
   footerAddress: "Phnom Penh, Cambodia",
   footerRights: "All rights reserved",
+
+  ttsTitle: "Text to speech",
+  ttsSubtitle: "Type or paste text, then listen in Khmer or English",
+  ttsPlaceholder: "Type or paste text here...",
+  ttsSpeak: "Speak",
+  ttsSpeaking: "Generating audio...",
+  ttsDownload: "Download MP3",
+  ttsResult: "Generated audio",
+  ttsFailed: "Text-to-speech failed",
+  ttsCharCount: (current: number, max: number) => `${current} / ${max}`,
+  ttsOverLimit: (max: number) => `Text cannot exceed ${max} characters`,
+
+  ttsModeLabel: "Voice mode",
+  ttsModeDefault: "Default voice",
+  ttsModeClone: "Clone my voice",
+  ttsCloneHint:
+    "Record or upload a short sample (about 3–10 seconds) in a quiet room to clone your voice",
+  ttsCloneUpload: "Upload reference audio",
+  ttsCloneChangeFile: "Change file",
+  ttsCloneRecord: "Record",
+  ttsCloneRecording: "Recording...",
+  ttsCloneStop: "Stop recording",
+  ttsCloneClear: "Clear reference audio",
+  ttsCloneConsent:
+    "I own this voice sample and allow it to be used to create a synthetic clone",
+  ttsCloneNeedReference: "Please record or upload reference audio before speaking",
+  ttsCloneNeedConsent: "Please accept the consent before cloning a voice",
+  ttsCloneMicDenied:
+    "Microphone access was denied. Allow access or upload a file instead",
+  ttsCloneUnsupportedMic: "Your browser does not support audio recording",
+  ttsCloning: "Cloning voice, please wait...",
+  ttsCloneFailed: "Voice cloning failed",
+  ttsClonePreview: "Reference audio",
 } as const;
 
 export function jobStatusLabel(status: JobStatus): string {

@@ -1,4 +1,5 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,6 +13,7 @@ function getFooterColumns(t: ReturnType<typeof useLanguage>["text"]) {
         { href: "/#features", label: t.navFeatures },
         { href: "/#how-it-works", label: t.navHow },
         { href: "/transcribe", label: t.transcribeNav },
+        { href: "/tts", label: t.ttsNav },
         { href: "/login", label: t.signIn },
       ],
     },
@@ -20,6 +22,7 @@ function getFooterColumns(t: ReturnType<typeof useLanguage>["text"]) {
       links: [
         { href: "/#features", label: t.navFeatures },
         { href: "/transcribe", label: t.transcribeNav },
+        { href: "/tts", label: t.ttsNav },
         { href: "/register", label: t.register },
         { href: "/#how-it-works", label: t.navHow },
         { href: "/", label: t.home },
@@ -78,16 +81,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 sm:py-10">
         <div className="grid gap-8 lg:grid-cols-12 lg:gap-6">
           <div className="lg:col-span-3">
-            <Link href="/" className="inline-block">
-              <Image
-                src="/logo.png"
-                alt="សម្លេងខ្មែរ"
-                width={180}
-                height={72}
-                className="h-10 w-auto object-contain sm:h-12"
-              />
-            </Link>
-            <p className="khmer-text mt-4 max-w-xs text-sm leading-relaxed text-white/70">
+            <p className="khmer-text max-w-xs text-sm leading-relaxed text-white/70">
               {t.footerTagline}
             </p>
             <div className="mt-5 flex flex-wrap gap-2.5">
@@ -103,7 +97,7 @@ export function SiteFooter() {
               </SocialIcon>
               <SocialIcon href="https://youtube.com" label="YouTube">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path d="M23.5 6.2a3.02 3.02 0 00-2.12-2.14C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.56A3.02 3.02 0 00.5 6.2 31.6 31.6 0 000 12a31.6 31.6 0 00.5 5.8 3.02 3.02 0 002.12 2.14C4.5 20.5 12 20.5 12 20.5s7.5 0 9.38-.56a3.02 3.02 0 002.12-2.14A31.6 31.6 0 0024 12a31.6 31.6 0 00-.5-5.8zM9.75 15.5v-7l6.5 3.5-6.5 3.5z" />
+                  <path d="M23.5 6.2a3.02 3.02 0 00-2.12-2.14C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.56A3.02 3.02 0 00.5 6.2 31.6 31.6 0 000 12a31.6 31.6 0 00.5 5.8 3.02 3.02 0 002.12 2.14C4.5 20.5 12 20.5 12 20.5s7.5 0 9.38-.56a3.02 3.02 0 002.12-2.14A31.6 31.6 0 00-.5-5.8zM9.75 15.5v-7l6.5 3.5-6.5 3.5z" />
                 </svg>
               </SocialIcon>
               <SocialIcon href="/#features" label="RSS">

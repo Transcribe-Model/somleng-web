@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,6 +10,7 @@ const NAV: Record<LanguageMode, { href: string; labelKey: keyof ReturnType<typeo
   km: [
     { href: "/", labelKey: "home" },
     { href: "/transcribe", labelKey: "transcribeNav" },
+    { href: "/tts", labelKey: "ttsNav" },
     { href: "/#features", labelKey: "navFeatures" },
     { href: "/#how-it-works", labelKey: "navHow" },
     { href: "/login", labelKey: "signIn" },
@@ -19,6 +19,7 @@ const NAV: Record<LanguageMode, { href: string; labelKey: keyof ReturnType<typeo
   en: [
     { href: "/", labelKey: "home" },
     { href: "/transcribe", labelKey: "transcribeNav" },
+    { href: "/tts", labelKey: "ttsNav" },
     { href: "/#features", labelKey: "navFeatures" },
     { href: "/#how-it-works", labelKey: "navHow" },
     { href: "/login", labelKey: "signIn" },
@@ -56,20 +57,6 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-3 transition opacity-95 hover:opacity-100"
-        >
-          <Image
-            src="/logo.png"
-            alt="សម្លេងខ្មែរ"
-            width={160}
-            height={56}
-            priority
-            className="h-10 w-auto object-contain sm:h-12"
-          />
-        </Link>
-
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex xl:gap-2">
           {navItems.map((item) => {
             const active = isActive(pathname, item.href);

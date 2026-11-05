@@ -11,6 +11,7 @@
   "dependencies": {
     "@google-cloud/speech": "^7.5.0",
     "@google-cloud/storage": "^7.21.0",
+    "@google-cloud/text-to-speech": "^7.2.0",
     "@supabase/supabase-js": "^2.110.8",
     "buffer": "^6.0.3",
     "next": "16.2.10",

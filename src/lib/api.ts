@@ -129,6 +129,67 @@ export async function deleteJob(jobId: string): Promise<void> {
   }
 }
 
+export async function synthesizeSpeech(
+  text: string,
+  language: string = "km-KH",
+): Promise<Blob> {
+  const res = await authFetch(`${API_URL}/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, language }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail =
+      body && typeof body.detail === "string"
+        ? body.detail
+        : `សំណើមិនបានសម្រេច (${res.status})`;
+    throw new Error(detail);
+  }
+
+  return res.blob();
+}
+
+export async function cloneSpeech(
+  text: string,
+  referenceAudio: File | Blob,
+  options?: {
+    language?: string;
+    voiceConsent?: boolean;
+    filename?: string;
+  },
+): Promise<Blob> {
+  const form = new FormData();
+  form.append("text", text);
+  form.append("language", options?.language ?? "km-KH");
+  form.append("voice_consent", options?.voiceConsent === false ? "false" : "true");
+
+  const filename =
+    options?.filename ||
+    (referenceAudio instanceof File && referenceAudio.name
+      ? referenceAudio.name
+      : "reference.webm");
+
+  form.append("reference_audio", referenceAudio, filename);
+
+  const res = await authFetch(`${API_URL}/voice-clone`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail =
+      body && typeof body.detail === "string"
+        ? body.detail
+        : `សំណើមិនបានសម្រេច (${res.status})`;
+    throw new Error(detail);
+  }
+
+  return res.blob();
+}
+
 export async function pollJobUntilDone(
   jobId: string,
   onUpdate?: (job: JobResponse) => void,
