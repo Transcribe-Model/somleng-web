@@ -1,10 +1,5 @@
-import { TranscribeShell } from "@/components/TranscribeShell";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "បម្លែងសំឡេង — សម្លេងខ្មែរ",
-  description: "បញ្ចូលឯកសារសំឡេង និងបម្លែងសំឡេងភាសាខ្មែរទៅជាអក្សរ",
-};
-
-export default function TranscribePage() {
-  return <TranscribeShell />;
+export default function TranscribeRedirectPage() {
+  redirect("/dashboard/transcribe");
 }

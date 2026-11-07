@@ -12,14 +12,18 @@ export default function LoginPage() {
   const { signIn, configured, user, loading: authLoading } = useAuth();
   const { text: t } = useLanguage();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(
+    process.env.NEXT_PUBLIC_DEV_LOGIN_EMAIL ?? "",
+  );
+  const [password, setPassword] = useState(
+    process.env.NEXT_PUBLIC_DEV_LOGIN_PASSWORD ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/transcribe");
+      router.replace("/dashboard");
     }
   }, [authLoading, user, router]);
 
@@ -29,7 +33,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.push("/transcribe");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.loginFailed);
     } finally {

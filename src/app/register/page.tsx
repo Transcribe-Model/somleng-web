@@ -20,7 +20,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/transcribe");
+      router.replace("/dashboard");
     }
   }, [authLoading, user, router]);
 
@@ -40,7 +40,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await signUp(email, password);
-      router.push("/transcribe");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.registerFailed);
     } finally {
