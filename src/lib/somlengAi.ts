@@ -57,6 +57,10 @@ export type SomlengAiHealth = {
   name?: string;
   vram_gb?: number;
   active_model?: string;
+  stt_engine?: string;
+  tts_engine?: string;
+  clone_engine?: string;
+  qwen_asr_model?: string;
   whisper_model?: string;
   voxcpm_model?: string;
   diarization?: boolean;

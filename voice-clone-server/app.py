@@ -1,12 +1,12 @@
 """
 Somleng AI — self-hosted STT + TTS + voice clone + local storage.
 
-Runs on YOURMOM (Tailscale). GPU mutex keeps Whisper / MMS / VoxCPM2 from
-fighting over the 4GB RTX 2050.
+Runs on YOURMOM (Tailscale). GPU mutex keeps Qwen-ASR / Whisper / MMS / VoxCPM2
+from fighting over the 4GB RTX 2050.
 
   - Default TTS  → Meta MMS VITS (facebook/mms-tts-khm) — small & stable
   - Voice clone  → VoxCPM2 — loaded only when cloning
-  - STT          → faster-whisper Khmer CT2
+  - STT          → Qwen3-ASR-0.6B-Khmer (default); Whisper CT2 fallback
 
   python -m uvicorn app:app --host 127.0.0.1 --port 8090
 """
@@ -36,6 +36,11 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 VOXCPM_MODEL = os.environ.get("VOXCPM_MODEL", "openbmb/VoxCPM2")
 MMS_TTS_MODEL = os.environ.get("MMS_TTS_MODEL", "facebook/mms-tts-khm")
 MMS_TTS_MODEL_EN = os.environ.get("MMS_TTS_MODEL_EN", "facebook/mms-tts-eng")
+STT_ENGINE = os.environ.get("STT_ENGINE", "qwen").strip().lower()  # qwen | whisper
+QWEN_ASR_MODEL = os.environ.get(
+    "QWEN_ASR_MODEL", "seanghay/Qwen3-ASR-0.6B-Khmer"
+)
+QWEN_ASR_MAX_NEW_TOKENS = int(os.environ.get("QWEN_ASR_MAX_NEW_TOKENS", "1024"))
 WHISPER_MODEL = os.environ.get(
     "WHISPER_MODEL", "PhanithLIM/whisper-small-khmer-ct2"
 )
@@ -58,9 +63,9 @@ for d in (UPLOAD_DIR, JOB_DIR, META_DIR):
 
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
-app = FastAPI(title="Somleng AI", version="2.1.0")
+app = FastAPI(title="Somleng AI", version="2.2.0")
 
-ActiveModel = Literal["none", "whisper", "mms", "voxcpm2"]
+ActiveModel = Literal["none", "whisper", "qwen_asr", "mms", "voxcpm2"]
 
 _gpu_lock = threading.RLock()
 _active_model: ActiveModel = "none"
@@ -70,6 +75,7 @@ _mms_model: Any = None
 _mms_tokenizer: Any = None
 _mms_loaded_id: str | None = None
 _whisper_model: Any = None
+_qwen_asr_model: Any = None
 
 _clone_jobs: dict[str, dict[str, Any]] = {}
 _clone_jobs_lock = threading.Lock()
@@ -163,12 +169,24 @@ def _unload_whisper() -> None:
         _active_model = "none"
 
 
+def _unload_qwen_asr() -> None:
+    global _qwen_asr_model, _active_model
+    if _qwen_asr_model is not None:
+        print("[somleng-ai] unloading Qwen ASR")
+        _qwen_asr_model = None
+        _cuda_empty()
+    if _active_model == "qwen_asr":
+        _active_model = "none"
+
+
 def _ensure_voxcpm() -> Any:
     global _voxcpm_model, _active_model
     with _gpu_lock:
         # VoxCPM needs almost all of the 4GB card — clear everything else.
         if _active_model == "whisper" or _whisper_model is not None:
             _unload_whisper()
+        if _active_model == "qwen_asr" or _qwen_asr_model is not None:
+            _unload_qwen_asr()
         if _active_model == "mms" or _mms_model is not None:
             _unload_mms()
         if _voxcpm_model is not None:
@@ -196,12 +214,14 @@ def _ensure_voxcpm() -> Any:
 
 
 def _ensure_mms(language: str | None = None) -> tuple[Any, Any]:
-    """Load Meta MMS VITS for default TTS. Unloads VoxCPM only."""
+    """Load Meta MMS VITS for default TTS. Unloads VoxCPM / Qwen ASR."""
     global _mms_model, _mms_tokenizer, _mms_loaded_id, _active_model
     repo_id = _mms_repo_for_language(language)
     with _gpu_lock:
         if _active_model == "voxcpm2" or _voxcpm_model is not None:
             _unload_voxcpm()
+        if _active_model == "qwen_asr" or _qwen_asr_model is not None:
+            _unload_qwen_asr()
         if (
             _mms_model is not None
             and _mms_tokenizer is not None
@@ -231,11 +251,47 @@ def _ensure_mms(language: str | None = None) -> tuple[Any, Any]:
         return _mms_model, _mms_tokenizer
 
 
+def _ensure_qwen_asr() -> Any:
+    """Load Qwen3-ASR Khmer. Unloads VoxCPM / Whisper / MMS for VRAM headroom."""
+    global _qwen_asr_model, _active_model
+    with _gpu_lock:
+        if _active_model == "voxcpm2" or _voxcpm_model is not None:
+            _unload_voxcpm()
+        if _active_model == "whisper" or _whisper_model is not None:
+            _unload_whisper()
+        if _active_model == "mms" or _mms_model is not None:
+            _unload_mms()
+        if _qwen_asr_model is not None:
+            _active_model = "qwen_asr"
+            return _qwen_asr_model
+
+        import torch
+        from qwen_asr import Qwen3ASRModel
+
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
+        print(f"[somleng-ai] loading Qwen ASR {QWEN_ASR_MODEL} on {device} ...")
+        started = time.time()
+        model = Qwen3ASRModel.from_pretrained(
+            QWEN_ASR_MODEL,
+            dtype=dtype,
+            device_map=device,
+            max_inference_batch_size=1,
+            max_new_tokens=QWEN_ASR_MAX_NEW_TOKENS,
+        )
+        _qwen_asr_model = model
+        _active_model = "qwen_asr"
+        print(f"[somleng-ai] Qwen ASR ready in {time.time() - started:.1f}s")
+        return _qwen_asr_model
+
+
 def _ensure_whisper() -> Any:
     global _whisper_model, _active_model
     with _gpu_lock:
         if _active_model == "voxcpm2" or _voxcpm_model is not None:
             _unload_voxcpm()
+        if _active_model == "qwen_asr" or _qwen_asr_model is not None:
+            _unload_qwen_asr()
         # MMS (~36M) can stay warm beside Whisper on 4GB.
         if _whisper_model is not None:
             _active_model = "whisper"
@@ -326,16 +382,19 @@ def health():
         "service": "somleng-ai",
         "tts_engine": "mms",
         "clone_engine": "voxcpm2",
+        "stt_engine": STT_ENGINE if STT_ENGINE in {"qwen", "whisper"} else "qwen",
         "mms_tts_model": MMS_TTS_MODEL,
         "mms_tts_model_en": MMS_TTS_MODEL_EN,
         "voxcpm_model": VOXCPM_MODEL,
+        "qwen_asr_model": QWEN_ASR_MODEL,
         "whisper_model": WHISPER_MODEL,
         "active_model": _active_model,
         "disk_free_gb": _disk_free_gb(),
         "auth_required": bool(API_KEY),
         "diarization": False,
         "license_note": (
-            "Default TTS (MMS) is CC-BY-NC-4.0; swap before commercial use"
+            "Default TTS (MMS) is CC-BY-NC-4.0; swap before commercial use. "
+            "STT (Qwen3-ASR Khmer) is Apache-2.0."
         ),
         **info,
     }
@@ -551,6 +610,142 @@ def _transcribe_chunked(
     return merged, info
 
 
+def _qwen_max_tokens_for_duration(duration_s: float) -> int:
+    # Roughly ~12–20 Khmer chars/sec of speech; leave headroom for long clips.
+    estimate = int(max(256, duration_s * 24))
+    return int(min(max(QWEN_ASR_MAX_NEW_TOKENS, estimate), 4096))
+
+
+def _transcribe_with_qwen(
+    audio: np.ndarray, *, sample_rate: int = 16000
+) -> tuple[str, list[dict[str, Any]], float]:
+    """Run Qwen3-ASR Khmer and return (text, segments, duration)."""
+    duration = float(len(audio) / sample_rate)
+    model = _ensure_qwen_asr()
+
+    # Bump generation budget for this clip when the loaded default is too small.
+    max_tokens = _qwen_max_tokens_for_duration(duration)
+    try:
+        if hasattr(model, "max_new_tokens"):
+            model.max_new_tokens = max_tokens
+    except Exception:
+        pass
+
+    with _gpu_lock:
+        results = model.transcribe(audio=(audio, sample_rate))
+
+    raw = ""
+    if results:
+        first = results[0]
+        raw = getattr(first, "text", None) or str(first)
+    text = _clean_transcript_text(raw)
+    # Drop optional language prefix if the parser left one.
+    text = re.sub(
+        r"^(?:language\s+)?(?:Khmer|English|km|en)\s*",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    ).strip()
+    text = _clean_transcript_text(text)
+
+    segments: list[dict[str, Any]] = []
+    if text:
+        segments.append(
+            {
+                "start": 0.0,
+                "end": duration,
+                "text": text,
+                "speaker": None,
+            }
+        )
+    return text, segments, duration
+
+
+def _transcribe_with_whisper(
+    audio: np.ndarray, language: str | None
+) -> tuple[str, list[dict[str, Any]], float, str | None]:
+    """Legacy Whisper path (fallback / STT_ENGINE=whisper)."""
+    model = _ensure_whisper()
+    lang = _language_to_whisper(language)
+    silence_pad = np.zeros(int(16000 * 1.0), dtype=np.float32)
+    audio = np.concatenate([audio, silence_pad])
+    audio_duration = float(len(audio) / 16000.0)
+    reported_duration = max(0.0, audio_duration - 1.0)
+
+    transcribe_kwargs: dict[str, Any] = {
+        "language": lang,
+        "task": "transcribe",
+        "beam_size": 5,
+        "best_of": 5,
+        "patience": 1.2,
+        "temperature": (0.0, 0.2, 0.4, 0.6),
+        "condition_on_previous_text": False,
+        "vad_filter": False,
+        "word_timestamps": False,
+        "compression_ratio_threshold": 2.6,
+        "no_speech_threshold": 0.5,
+    }
+
+    segments, info = _transcribe_chunked(
+        model,
+        audio,
+        transcribe_kwargs,
+        window_s=20.0,
+        overlap_s=5.0,
+    )
+
+    if audio_duration > 12.0:
+        tail_seconds = 20.0
+        start_sample = int(max(0.0, (audio_duration - tail_seconds) * 16000))
+        time_offset = start_sample / 16000.0
+        tail_audio = np.concatenate(
+            [audio[start_sample:], np.zeros(int(16000 * 1.5), dtype=np.float32)]
+        )
+        tail_iter, _tail_info = model.transcribe(
+            tail_audio,
+            **{
+                **transcribe_kwargs,
+                "vad_filter": False,
+                "condition_on_previous_text": False,
+            },
+        )
+        tail_segments, _tail_texts, _tail_end = _collect_segments(
+            tail_iter, time_offset=time_offset
+        )
+        if tail_segments:
+            cut = time_offset + 6.0
+            keep_before = [
+                s
+                for s in segments
+                if s.get("end") is None or float(s["end"]) < cut
+            ]
+            tail_keep = [
+                s
+                for s in tail_segments
+                if s.get("start") is None or float(s["start"]) >= cut
+            ]
+            if tail_keep:
+                segments = keep_before + tail_keep
+                segments.sort(
+                    key=lambda s: (s.get("start") is None, s.get("start") or 0.0)
+                )
+
+    max_end = max(
+        (float(s["end"]) for s in segments if s.get("end") is not None),
+        default=0.0,
+    )
+    duration = max(
+        float(getattr(info, "duration", 0) or 0) if info is not None else 0.0,
+        max_end,
+        reported_duration,
+    )
+    full_text = _clean_transcript_text(
+        " ".join(s["text"] for s in segments if s.get("text"))
+    )
+    detected = getattr(info, "language", lang) if info is not None else lang
+    return full_text, segments, duration, detected
+
+
 def _run_transcribe_job(job_id: str, file_path: str, language: str | None) -> None:
     try:
         job = _read_job(job_id)
@@ -558,96 +753,30 @@ def _run_transcribe_job(job_id: str, file_path: str, language: str | None) -> No
         job["progress_percent"] = 10
         _write_job(job_id, job)
 
-        model = _ensure_whisper()
-        job["progress_percent"] = 25
-        _write_job(job_id, job)
-
-        lang = _language_to_whisper(language)
         audio = _load_audio_for_whisper(file_path)
-        # Append silence so decode doesn't clip the final Khmer syllable.
-        silence_pad = np.zeros(int(16000 * 1.0), dtype=np.float32)
-        audio = np.concatenate([audio, silence_pad])
-        audio_duration = float(len(audio) / 16000.0)
-        reported_duration = max(0.0, audio_duration - 1.0)
-
-        transcribe_kwargs: dict[str, Any] = {
-            "language": lang,
-            "task": "transcribe",
-            "beam_size": 5,
-            "best_of": 5,
-            "patience": 1.2,
-            "temperature": (0.0, 0.2, 0.4, 0.6),
-            "condition_on_previous_text": False,
-            "vad_filter": False,
-            "word_timestamps": False,
-            "compression_ratio_threshold": 2.6,
-            "no_speech_threshold": 0.5,
-        }
-
-        job["progress_percent"] = 40
+        engine = STT_ENGINE if STT_ENGINE in {"qwen", "whisper"} else "qwen"
+        job["progress_percent"] = 30
         _write_job(job_id, job)
 
-        segments, info = _transcribe_chunked(
-            model,
-            audio,
-            transcribe_kwargs,
-            window_s=20.0,
-            overlap_s=5.0,
-        )
+        if engine == "qwen":
+            # Light pad helps final syllable; Qwen chunks long audio internally.
+            silence_pad = np.zeros(int(16000 * 0.4), dtype=np.float32)
+            padded = np.concatenate([audio, silence_pad])
+            job["progress_percent"] = 50
+            _write_job(job_id, job)
+            full_text, segments, duration = _transcribe_with_qwen(padded)
+            duration = max(duration - 0.4, float(len(audio) / 16000.0))
+            detected_lang = _language_to_whisper(language) or "km"
+        else:
+            job["progress_percent"] = 50
+            _write_job(job_id, job)
+            full_text, segments, duration, detected_lang = _transcribe_with_whisper(
+                audio, language
+            )
 
-        # Final ending pass: last ~20s replaces the trailing region.
-        job["progress_percent"] = 80
+        job["progress_percent"] = 90
         _write_job(job_id, job)
-        if audio_duration > 12.0:
-            tail_seconds = 20.0
-            start_sample = int(max(0.0, (audio_duration - tail_seconds) * 16000))
-            time_offset = start_sample / 16000.0
-            tail_audio = np.concatenate(
-                [audio[start_sample:], np.zeros(int(16000 * 1.5), dtype=np.float32)]
-            )
-            tail_iter, _tail_info = model.transcribe(
-                tail_audio,
-                **{
-                    **transcribe_kwargs,
-                    "vad_filter": False,
-                    "condition_on_previous_text": False,
-                },
-            )
-            tail_segments, _tail_texts, _tail_end = _collect_segments(
-                tail_iter, time_offset=time_offset
-            )
-            if tail_segments:
-                # Keep main body; take only the latter half of the tail pass.
-                cut = time_offset + 6.0
-                keep_before = [
-                    s
-                    for s in segments
-                    if s.get("end") is None or float(s["end"]) < cut
-                ]
-                tail_keep = [
-                    s
-                    for s in tail_segments
-                    if s.get("start") is None or float(s["start"]) >= cut
-                ]
-                if tail_keep:
-                    segments = keep_before + tail_keep
-                    segments.sort(
-                        key=lambda s: (s.get("start") is None, s.get("start") or 0.0)
-                    )
 
-        max_end = max(
-            (float(s["end"]) for s in segments if s.get("end") is not None),
-            default=0.0,
-        )
-        duration = max(
-            float(getattr(info, "duration", 0) or 0) if info is not None else 0.0,
-            max_end,
-            reported_duration,
-        )
-
-        full_text = _clean_transcript_text(
-            " ".join(s["text"] for s in segments if s.get("text"))
-        )
         job.update(
             {
                 "status": "completed",
@@ -655,7 +784,8 @@ def _run_transcribe_job(job_id: str, file_path: str, language: str | None) -> No
                 "text": full_text,
                 "segments": segments,
                 "duration_seconds": duration,
-                "language": getattr(info, "language", lang) if info is not None else lang,
+                "language": detected_lang,
+                "engine": engine,
                 "error": None,
             }
         )
@@ -944,11 +1074,14 @@ def clone_job_audio(job_id: str, authorization: str | None = Header(default=None
 @app.on_event("startup")
 def startup() -> None:
     print(f"[somleng-ai] data dir: {BASE_DIR}")
+    print(f"[somleng-ai] STT engine: {STT_ENGINE} ({QWEN_ASR_MODEL if STT_ENGINE != 'whisper' else WHISPER_MODEL})")
     print(f"[somleng-ai] default TTS: MMS ({MMS_TTS_MODEL})")
     print(f"[somleng-ai] clone engine: VoxCPM2 ({VOXCPM_MODEL})")
     if os.environ.get("MMS_WARMUP", "0") == "1":
         _ensure_mms()
     if os.environ.get("VOXCPM_WARMUP", "0") == "1":
         _ensure_voxcpm()
+    if os.environ.get("QWEN_ASR_WARMUP", "0") == "1":
+        _ensure_qwen_asr()
     if os.environ.get("WHISPER_WARMUP", "0") == "1":
         _ensure_whisper()

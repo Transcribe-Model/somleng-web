@@ -14,7 +14,11 @@ export async function GET() {
     const h = await somlengAiHealth();
     aiOk = h.status === "ok";
     diarization = Boolean(h.diarization);
-    if (h.whisper_model) aiModel = h.whisper_model;
+    if (h.stt_engine === "qwen" && h.qwen_asr_model) {
+      aiModel = h.qwen_asr_model;
+    } else if (h.whisper_model) {
+      aiModel = h.whisper_model;
+    }
     activeModel = h.active_model ?? null;
   } catch {
     aiOk = false;
