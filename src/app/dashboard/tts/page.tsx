@@ -6,5 +6,9 @@ export const metadata = {
 };
 
 export default function DashboardTtsPage() {
-  return <TtsApp />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <TtsApp />
+    </div>
+  );
 }
