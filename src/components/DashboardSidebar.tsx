@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/dashboard", labelKey: "dashboardOverview" as const, end: true },
   { href: "/dashboard/transcribe", labelKey: "transcribeNav" as const, end: false },
   { href: "/dashboard/tts", labelKey: "ttsNav" as const, end: false },
+  { href: "/dashboard/clone", labelKey: "cloneNav" as const, end: false },
   { href: "/dashboard/history", labelKey: "historyNav" as const, end: false },
 ];
 

@@ -15,6 +15,11 @@ const CARDS = [
     descKey: "ttsCardDesc" as const,
   },
   {
+    href: "/dashboard/clone",
+    titleKey: "cloneNav" as const,
+    descKey: "cloneCardDesc" as const,
+  },
+  {
     href: "/dashboard/history",
     titleKey: "historyNav" as const,
     descKey: "historyCardDesc" as const,
@@ -29,7 +34,7 @@ export default function DashboardPage() {
       <h1 className="khmer-text text-2xl font-bold text-navy">{t.dashboardTitle}</h1>
       <p className="khmer-text mt-1 text-sm text-text-muted">{t.dashboardSubtitle}</p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
         {CARDS.map((card) => (
           <Link
             key={card.href}
