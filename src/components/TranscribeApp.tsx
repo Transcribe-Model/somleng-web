@@ -261,28 +261,25 @@ export function TranscribeApp() {
             </select>
           </label>
 
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={enableDiarization}
-              disabled={loading}
-              onChange={(e) => setEnableDiarization(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-border text-navy focus:ring-navy"
-            />
-            <span className="min-w-0">
-              <span className="khmer-text block text-sm font-medium text-text">
-                {t.detectSpeakers}
-              </span>
-              <span className="khmer-text mt-0.5 block text-xs text-text-muted">
-                {t.detectSpeakersHint}
-              </span>
-              {enableDiarization && !diarizationReady && (
-                <span className="khmer-text mt-1 block text-xs text-amber-800">
-                  {t.detectSpeakersUnavailableService}
+          {diarizationReady ? (
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={enableDiarization}
+                disabled={loading}
+                onChange={(e) => setEnableDiarization(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-border text-navy focus:ring-navy"
+              />
+              <span className="min-w-0">
+                <span className="khmer-text block text-sm font-medium text-text">
+                  {t.detectSpeakers}
                 </span>
-              )}
-            </span>
-          </label>
+                <span className="khmer-text mt-0.5 block text-xs text-text-muted">
+                  {t.detectSpeakersHint}
+                </span>
+              </span>
+            </label>
+          ) : null}
 
           <UploadZone
             onFileSelect={setFile}

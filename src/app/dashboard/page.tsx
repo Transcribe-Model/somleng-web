@@ -14,6 +14,11 @@ const CARDS = [
     titleKey: "ttsNav" as const,
     descKey: "ttsCardDesc" as const,
   },
+  {
+    href: "/dashboard/history",
+    titleKey: "historyNav" as const,
+    descKey: "historyCardDesc" as const,
+  },
 ];
 
 export default function DashboardPage() {
@@ -24,7 +29,7 @@ export default function DashboardPage() {
       <h1 className="khmer-text text-2xl font-bold text-navy">{t.dashboardTitle}</h1>
       <p className="khmer-text mt-1 text-sm text-text-muted">{t.dashboardSubtitle}</p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CARDS.map((card) => (
           <Link
             key={card.href}

@@ -62,34 +62,27 @@ export async function transcribeUpload(
     enableDiarization?: boolean;
   },
 ): Promise<JobCreateResponse> {
-  // 1. Get Signed URL
-  const urlRes = await authFetch(`${API_URL}/transcribe/upload-url`, {
+  // 1. Upload to self-hosted Somleng AI storage (via Next proxy)
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const uploadRes = await authFetch(`${API_URL}/transcribe/upload`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName: file.name, contentType: file.type }),
+    body: form,
   });
-  const { url, gcsFileName } = await handleResponse<{ url: string; gcsFileName: string }>(urlRes);
+  const uploaded = await handleResponse<{ fileId: string; audio_path: string }>(
+    uploadRes,
+  );
 
-  // 2. Upload directly to GCS
-  const uploadRes = await fetch(url, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "audio/mpeg" },
-    body: file,
-  });
-  if (!uploadRes.ok) {
-    throw new Error("Failed to upload audio to Google Cloud Storage");
-  }
-
-  // 3. Process
+  // 2. Start local Whisper transcription job
   const processRes = await authFetch(`${API_URL}/transcribe/process`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      gcsFileName,
+      fileId: uploaded.fileId,
       originalFilename: file.name,
       language: options?.language,
       model: options?.model,
-      enableDiarization: options?.enableDiarization,
+      enableDiarization: false,
     }),
   });
   return handleResponse<JobCreateResponse>(processRes);

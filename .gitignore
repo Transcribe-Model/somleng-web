@@ -45,3 +45,10 @@ gcp-key.json
 
 # Local brainstorm / visual companion sessions
 .superpowers/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Supabase local temp
+supabase/.temp/

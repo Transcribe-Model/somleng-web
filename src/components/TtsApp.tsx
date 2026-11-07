@@ -2,17 +2,29 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cloneSpeech, synthesizeSpeech } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { km } from "@/lib/km";
+import {
+  estimateRemainingSeconds,
+  formatEtaSeconds,
+} from "@/lib/progress";
 
 const MAX_CHARS = 4500;
 const MAX_RECORD_MS = 12_000;
+
+type VoiceMode = "default" | "clone";
+
+function estimateTtsMs(charCount: number, mode: VoiceMode): number {
+  // Rough client-side ETA until the blocking API returns.
+  const base = mode === "clone" ? 8000 : 3500;
+  const perChar = mode === "clone" ? 28 : 12;
+  return Math.min(120_000, Math.max(base, base + charCount * perChar));
+}
 
 const LANGUAGES = [
   { code: "km-KH", label: km.languageKhmer },
   { code: "en-US", label: km.languageEnglish },
 ];
-
-type VoiceMode = "default" | "clone";
 
 function pickRecorderMimeType(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
@@ -26,10 +38,14 @@ function pickRecorderMimeType(): string | undefined {
 }
 
 export function TtsApp() {
+  const { text: t } = useLanguage();
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("km-KH");
   const [mode, setMode] = useState<VoiceMode>("default");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressStartedAt, setProgressStartedAt] = useState<number | null>(null);
+  const [progressNow, setProgressNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
@@ -205,6 +221,23 @@ export function TtsApp() {
     !recording &&
     (mode === "default" || (Boolean(referenceFile) && consent));
 
+  useEffect(() => {
+    if (!loading || progressStartedAt == null) return;
+
+    const estimatedMs = estimateTtsMs(trimmed.length || 1, mode);
+    const id = window.setInterval(() => {
+      const now = Date.now();
+      setProgressNow(now);
+      const elapsed = now - progressStartedAt;
+      const ratio = Math.min(1, elapsed / estimatedMs);
+      // Ease toward 92% while waiting; jump to 100% when the request finishes.
+      const next = Math.min(92, Math.round(8 + ratio * 84));
+      setProgress((prev) => Math.max(prev, next));
+    }, 200);
+
+    return () => window.clearInterval(id);
+  }, [loading, progressStartedAt, mode, trimmed.length]);
+
   async function handleSpeak() {
     if (!canSpeak) return;
 
@@ -220,6 +253,8 @@ export function TtsApp() {
     }
 
     setLoading(true);
+    setProgress(5);
+    setProgressStartedAt(Date.now());
     setError(null);
 
     try {
@@ -232,6 +267,7 @@ export function TtsApp() {
             })
           : await synthesizeSpeech(trimmed, language);
 
+      setProgress(100);
       const nextUrl = URL.createObjectURL(blob);
       setAudioUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -247,8 +283,26 @@ export function TtsApp() {
       );
     } finally {
       setLoading(false);
+      setProgressStartedAt(null);
+      window.setTimeout(() => setProgress(0), 400);
     }
   }
+
+  function progressLabel(): string {
+    if (mode === "clone") {
+      if (progress < 25) return t.ttsPreparing;
+      if (progress < 85) return t.ttsCloning;
+      return t.ttsFinalizing;
+    }
+    if (progress < 20) return t.ttsPreparing;
+    if (progress < 85) return t.ttsSynthesizing;
+    return t.ttsFinalizing;
+  }
+
+  const progressEtaSeconds =
+    loading && progressStartedAt != null
+      ? estimateRemainingSeconds(progressStartedAt, progress, progressNow)
+      : null;
 
   function handleDownload() {
     if (!audioUrl) return;
@@ -459,6 +513,35 @@ export function TtsApp() {
               </button>
             )}
           </div>
+
+          {loading && (
+            <div className="rounded-[6px] border border-border bg-bg-accent px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-navy/20 border-t-navy" />
+                  <p className="khmer-text truncate text-sm font-medium text-navy">
+                    {progressLabel()}
+                  </p>
+                </div>
+                <span className="khmer-text shrink-0 text-sm font-semibold text-navy tabular-nums">
+                  {t.progressLabel(progress)}
+                </span>
+              </div>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-border">
+                <div
+                  className="h-full rounded-full bg-navy transition-[width] duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              <p className="khmer-text mt-2 text-xs text-text-muted">
+                {progressEtaSeconds != null
+                  ? t.estimatedRemaining(formatEtaSeconds(progressEtaSeconds))
+                  : t.calculatingEta}
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="khmer-text rounded-[6px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
