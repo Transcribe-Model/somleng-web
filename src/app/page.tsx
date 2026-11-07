@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SiteLayout } from "@/components/SiteLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { km } from "@/lib/km";
 
@@ -222,6 +223,7 @@ const FAQS = {
 } as const;
 
 export default function HomePage() {
+  const { user } = useAuth();
   const { language } = useLanguage();
   const isKhmer = language === "km";
   const features = FEATURES[language];
@@ -277,7 +279,7 @@ export default function HomePage() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/transcribe"
+              href={user ? "/dashboard" : "/login"}
               className="khmer-text inline-flex w-full items-center justify-center rounded-[6px] bg-navy px-8 py-3.5 text-base font-semibold text-white transition hover:bg-navy-dark sm:w-auto"
             >
               {isKhmer ? km.getStartedTranscribe : "Start transcription"}
@@ -412,7 +414,7 @@ export default function HomePage() {
               : "Upload your audio file and get an accurate Khmer transcript in minutes."}
           </p>
           <Link
-            href="/transcribe"
+            href={user ? "/dashboard" : "/login"}
             className="khmer-text mt-8 inline-flex items-center justify-center rounded-[6px] bg-gold px-8 py-3.5 text-base font-semibold text-white transition hover:bg-gold-hover"
           >
             {isKhmer ? km.getStartedNow : "Get started"}

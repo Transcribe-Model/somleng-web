@@ -9,8 +9,6 @@ import { useLanguage, type LanguageMode } from "@/contexts/LanguageContext";
 const NAV: Record<LanguageMode, { href: string; labelKey: keyof ReturnType<typeof useLanguage>["text"] }[]> = {
   km: [
     { href: "/", labelKey: "home" },
-    { href: "/transcribe", labelKey: "transcribeNav" },
-    { href: "/tts", labelKey: "ttsNav" },
     { href: "/#features", labelKey: "navFeatures" },
     { href: "/#how-it-works", labelKey: "navHow" },
     { href: "/login", labelKey: "signIn" },
@@ -18,8 +16,6 @@ const NAV: Record<LanguageMode, { href: string; labelKey: keyof ReturnType<typeo
   ],
   en: [
     { href: "/", labelKey: "home" },
-    { href: "/transcribe", labelKey: "transcribeNav" },
-    { href: "/tts", labelKey: "ttsNav" },
     { href: "/#features", labelKey: "navFeatures" },
     { href: "/#how-it-works", labelKey: "navHow" },
     { href: "/login", labelKey: "signIn" },
@@ -46,13 +42,19 @@ export function SiteHeader() {
     router.push("/login");
   }
 
-  const navItems = NAV[language]
+  const baseItems = NAV[language]
     .filter((item) => {
       if (user && (item.href === "/login" || item.href === "/register")) return false;
-      if (!user && item.href === "/login") return true;
       return true;
     })
     .map((item) => ({ ...item, label: String(t[item.labelKey]) }));
+
+  const navItems = user
+    ? [
+        { href: "/dashboard", labelKey: "dashboardNav" as const, label: String(t.dashboardNav) },
+        ...baseItems,
+      ]
+    : baseItems;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-white">
@@ -106,9 +108,9 @@ export function SiteHeader() {
           </div>
 
           <Link
-            href="/transcribe"
+            href="/dashboard"
             className="flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-bg-accent"
-            aria-label={t.searchAria}
+            aria-label={t.dashboardNav}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
