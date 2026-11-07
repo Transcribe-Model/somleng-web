@@ -27,7 +27,7 @@ export function DashboardSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const { text: t } = useLanguage();
+  const { text: t, language, setLanguage } = useLanguage();
 
   useEffect(() => {
     if (!open) return;
@@ -74,6 +74,21 @@ export function DashboardSidebar({
       </nav>
 
       <div className="border-t border-white/10 px-5 py-4">
+        <div className="mb-3 inline-flex items-center rounded-full border border-white/15 bg-white/5 p-1">
+          {(["km", "en"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setLanguage(option)}
+              className={[
+                "rounded-full px-2.5 py-1 text-xs font-semibold transition",
+                language === option ? "bg-white text-navy" : "text-white/70 hover:text-white",
+              ].join(" ")}
+            >
+              {option === "km" ? "ខ្មែរ" : "EN"}
+            </button>
+          ))}
+        </div>
         {user?.email && (
           <p className="mb-2 truncate text-xs text-white/60">{user.email}</p>
         )}

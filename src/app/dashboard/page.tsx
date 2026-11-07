@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const { text: t } = useLanguage();
 
   return (
-    <div className="mx-auto w-full max-w-5xl overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-5xl flex-1 min-h-0 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="khmer-text text-2xl font-bold text-navy">{t.dashboardTitle}</h1>
       <p className="khmer-text mt-1 text-sm text-text-muted">{t.dashboardSubtitle}</p>
 
