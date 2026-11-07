@@ -42,3 +42,6 @@ next-env.d.ts
 
 # GCP service account key (never commit)
 gcp-key.json
+
+# Local brainstorm / visual companion sessions
+.superpowers/
