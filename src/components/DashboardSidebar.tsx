@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +28,17 @@ export function DashboardSidebar({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { text: t } = useLanguage();
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   async function handleSignOut() {
     await signOut();
@@ -89,10 +101,15 @@ export function DashboardSidebar({
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
-            aria-label="Close menu"
+            aria-label={t.menu}
             onClick={onClose}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-[min(16rem,85vw)] flex-col bg-navy text-white shadow-xl">
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.dashboardMenu}
+            className="absolute inset-y-0 left-0 flex w-[min(16rem,85vw)] flex-col bg-navy text-white shadow-xl"
+          >
             {nav}
           </aside>
         </div>
