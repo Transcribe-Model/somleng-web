@@ -23,7 +23,7 @@ export async function cloneSpeechAndWait(options: {
     }
     if (error instanceof TypeError) {
       throw new VoxttsError(
-        "Cannot reach Somleng AI voice clone server. Is Tailscale up?",
+        "Cannot reach Somleng AI (network/Tailscale). Check YOURMOM is online, then retry.",
         503,
       );
     }

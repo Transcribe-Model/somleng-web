@@ -194,7 +194,14 @@ export async function somlengAiPresetSpeech(options: {
   return { bytes: Buffer.from(await res.arrayBuffer()), contentType };
 }
 
-/** Keep clone helper compatible with existing voice-clone route. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Clone via async jobs so Tailscale Serve does not kill long GPU generates
+ * (sync /v1/audio/clone often returns 502 around ~3 minutes).
+ */
 export async function somlengAiCloneSpeech(options: {
   text: string;
   referenceAudio: Blob;
@@ -202,7 +209,7 @@ export async function somlengAiCloneSpeech(options: {
 }): Promise<{ bytes: Buffer; contentType: string }> {
   const { baseUrl, apiKey } = getSomlengAiConfig();
   const form = new FormData();
-  form.append("text", options.text);
+  form.append("input", options.text);
   form.append("voice_consent", "true");
   form.append(
     "reference_audio",
@@ -210,12 +217,63 @@ export async function somlengAiCloneSpeech(options: {
     options.referenceFilename,
   );
 
-  const res = await fetch(`${baseUrl}/v1/audio/clone`, {
+  const createRes = await fetch(`${baseUrl}/v2/audio/clone/jobs`, {
     method: "POST",
     headers: authHeaders(apiKey),
     body: form,
   });
-  if (!res.ok) throw new SomlengAiError(await readErrorDetail(res), res.status);
-  const contentType = res.headers.get("content-type") || "audio/wav";
-  return { bytes: Buffer.from(await res.arrayBuffer()), contentType };
+  if (!createRes.ok) {
+    throw new SomlengAiError(await readErrorDetail(createRes), createRes.status);
+  }
+
+  const created = (await createRes.json()) as { job_id?: string };
+  const jobId = created.job_id?.trim();
+  if (!jobId) {
+    throw new SomlengAiError("Clone job did not return an id", 502);
+  }
+
+  const deadline = Date.now() + 12 * 60_000;
+  while (Date.now() < deadline) {
+    await sleep(2000);
+
+    const statusRes = await fetch(
+      `${baseUrl}/v2/audio/jobs/${encodeURIComponent(jobId)}`,
+      {
+        headers: authHeaders(apiKey),
+        cache: "no-store",
+      },
+    );
+    if (!statusRes.ok) {
+      throw new SomlengAiError(await readErrorDetail(statusRes), statusRes.status);
+    }
+
+    const job = (await statusRes.json()) as {
+      status?: string;
+      error?: string | null;
+    };
+
+    if (job.status === "failed") {
+      throw new SomlengAiError(job.error || "Clone failed", 500);
+    }
+
+    if (job.status === "completed") {
+      const audioRes = await fetch(
+        `${baseUrl}/v2/audio/jobs/${encodeURIComponent(jobId)}/audio`,
+        {
+          headers: authHeaders(apiKey),
+          cache: "no-store",
+        },
+      );
+      if (!audioRes.ok) {
+        throw new SomlengAiError(await readErrorDetail(audioRes), audioRes.status);
+      }
+      const contentType = audioRes.headers.get("content-type") || "audio/wav";
+      return { bytes: Buffer.from(await audioRes.arrayBuffer()), contentType };
+    }
+  }
+
+  throw new SomlengAiError(
+    "Clone timed out — try a shorter sentence, then retry",
+    504,
+  );
 }

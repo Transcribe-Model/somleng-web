@@ -52,6 +52,10 @@ API_KEY = (
 ).strip()
 DEFAULT_CFG = float(os.environ.get("VOXCPM_CFG", "2.0"))
 DEFAULT_TIMESTEPS = int(os.environ.get("VOXCPM_TIMESTEPS", "10"))
+# VoxCPM2 defaults max_len=4096 (~3h @ ~2.6s/step on RTX 2050). Cap hard.
+# ~2.6s/step on RTX 2050 — 192 ≈ 8 min gen; keep under web route budget.
+VOXCPM_MAX_LEN = int(os.environ.get("VOXCPM_MAX_LEN", "192"))
+CLONE_MAX_CHARS = int(os.environ.get("CLONE_MAX_CHARS", "1000"))
 
 BASE_DIR = Path(os.environ.get("SOMLENG_AI_DATA", Path(__file__).resolve().parent / "data"))
 UPLOAD_DIR = BASE_DIR / "uploads"
@@ -866,9 +870,20 @@ def transcribe_job_status(
 
 # ── TTS preset (MMS) + clone (VoxCPM2) ──────────────────────────────────────
 
+def _clone_max_len(text: str) -> int:
+    """Bound generation so sync clone finishes in minutes, not hours."""
+    estimated = max(48, int(len(text.strip()) * 2.5))
+    return min(VOXCPM_MAX_LEN, estimated)
+
+
 def _synthesize_clone(
     text: str, reference_path: str, cfg: float, timesteps: int
 ) -> tuple[np.ndarray, int]:
+    max_len = _clone_max_len(text)
+    print(
+        f"[somleng-ai] clone generate chars={len(text)} "
+        f"max_len={max_len} timesteps={timesteps} cfg={cfg}"
+    )
     with _gpu_lock:
         model = _ensure_voxcpm()
         wav = model.generate(
@@ -876,6 +891,7 @@ def _synthesize_clone(
             reference_wav_path=reference_path,
             cfg_value=cfg,
             inference_timesteps=timesteps,
+            max_len=max_len,
         )
         sr = int(getattr(model.tts_model, "sample_rate", 48000))
         return np.asarray(wav), sr
@@ -955,6 +971,14 @@ async def clone_sync(
     cleaned = text.strip()
     if not cleaned:
         raise HTTPException(status_code=400, detail="Text is required")
+    if len(cleaned) > CLONE_MAX_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Clone text too long ({len(cleaned)} chars). "
+                f"Keep it under {CLONE_MAX_CHARS} characters on this GPU."
+            ),
+        )
 
     ref_path = _read_upload_to_temp(reference_audio)
     try:
@@ -1023,6 +1047,14 @@ async def clone_job_create(
     cleaned = input.strip()
     if not cleaned:
         raise HTTPException(status_code=400, detail="input is required")
+    if len(cleaned) > CLONE_MAX_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Clone text too long ({len(cleaned)} chars). "
+                f"Keep it under {CLONE_MAX_CHARS} characters on this GPU."
+            ),
+        )
 
     ref_path = _read_upload_to_temp(reference_audio)
     job_id = str(uuid.uuid4())

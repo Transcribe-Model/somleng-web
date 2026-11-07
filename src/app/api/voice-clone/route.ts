@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { VoxttsError, cloneSpeechAndWait } from "@/lib/voxtts";
 
-export const maxDuration = 300;
+export const maxDuration = 800;
 
-const MAX_CHARS = 4500;
+const MAX_CHARS = 1000;
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 const ALLOWED_LANGUAGES = new Set(["km-KH", "en-US"]);
 const ALLOWED_AUDIO_TYPES = new Set([

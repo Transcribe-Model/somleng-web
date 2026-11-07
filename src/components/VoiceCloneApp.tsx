@@ -6,7 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { estimateRemainingSeconds } from "@/lib/progress";
 import { SpeechProgressPanel } from "@/components/SpeechProgressPanel";
 
-const MAX_CHARS = 4500;
+const MAX_CHARS = 1000;
 const MAX_RECORD_MS = 12_000;
 
 function estimateCloneMs(charCount: number): number {
