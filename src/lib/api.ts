@@ -144,27 +144,100 @@ export async function synthesizeSpeech(
   return res.blob();
 }
 
+export type SavedVoiceSummary = {
+  id: string;
+  name: string;
+  audio_path: string;
+  original_filename: string | null;
+  created_at: string;
+};
+
+export async function fetchSavedVoices(): Promise<SavedVoiceSummary[]> {
+  const res = await authFetch(`${API_URL}/voices`, { cache: "no-store" });
+  const data = await handleResponse<{ voices: SavedVoiceSummary[] }>(res);
+  return data.voices ?? [];
+}
+
+export async function saveVoice(
+  name: string,
+  referenceAudio: File | Blob,
+  filename?: string,
+): Promise<SavedVoiceSummary> {
+  const form = new FormData();
+  form.append("name", name);
+  const resolvedName =
+    filename ||
+    (referenceAudio instanceof File && referenceAudio.name
+      ? referenceAudio.name
+      : "reference.webm");
+  form.append("reference_audio", referenceAudio, resolvedName);
+
+  const res = await authFetch(`${API_URL}/voices`, {
+    method: "POST",
+    body: form,
+  });
+  const data = await handleResponse<{ voice: SavedVoiceSummary }>(res);
+  return data.voice;
+}
+
+export async function deleteSavedVoice(id: string): Promise<void> {
+  const res = await authFetch(`${API_URL}/voices/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+  await handleResponse<{ ok: boolean }>(res);
+}
+
+export async function fetchSavedVoiceAudio(id: string): Promise<Blob> {
+  const res = await authFetch(
+    `${API_URL}/voices/${encodeURIComponent(id)}/audio`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail =
+      body && typeof body.detail === "string"
+        ? body.detail
+        : `សំណើមិនបានសម្រេច (${res.status})`;
+    throw new Error(detail);
+  }
+  return res.blob();
+}
+
 export async function cloneSpeech(
   text: string,
-  referenceAudio: File | Blob,
-  options?: {
+  options: {
     language?: string;
     voiceConsent?: boolean;
+    referenceAudio?: File | Blob;
     filename?: string;
+    savedVoiceId?: string;
+    /** When false, skip History insert (used for long-form chunks). */
+    persist?: boolean;
   },
 ): Promise<Blob> {
   const form = new FormData();
   form.append("text", text);
-  form.append("language", options?.language ?? "km-KH");
-  form.append("voice_consent", options?.voiceConsent === false ? "false" : "true");
+  form.append("language", options.language ?? "km-KH");
+  form.append(
+    "voice_consent",
+    options.voiceConsent === false ? "false" : "true",
+  );
+  if (options.persist === false) {
+    form.append("persist", "false");
+  }
 
-  const filename =
-    options?.filename ||
-    (referenceAudio instanceof File && referenceAudio.name
-      ? referenceAudio.name
-      : "reference.webm");
-
-  form.append("reference_audio", referenceAudio, filename);
+  if (options.savedVoiceId) {
+    form.append("saved_voice_id", options.savedVoiceId);
+  } else if (options.referenceAudio) {
+    const filename =
+      options.filename ||
+      (options.referenceAudio instanceof File && options.referenceAudio.name
+        ? options.referenceAudio.name
+        : "reference.webm");
+    form.append("reference_audio", options.referenceAudio, filename);
+  } else {
+    throw new Error("Reference audio or saved voice is required");
+  }
 
   const res = await authFetch(`${API_URL}/voice-clone`, {
     method: "POST",
@@ -181,6 +254,34 @@ export async function cloneSpeech(
   }
 
   return res.blob();
+}
+
+export async function saveSpeechToHistory(options: {
+  text: string;
+  language?: string;
+  jobType?: "tts" | "clone";
+  engine?: string;
+  audio: Blob;
+  filename?: string;
+}): Promise<string> {
+  const form = new FormData();
+  form.append("text", options.text);
+  form.append("language", options.language ?? "km-KH");
+  form.append("job_type", options.jobType ?? "clone");
+  if (options.engine) form.append("engine", options.engine);
+  form.append(
+    "audio",
+    options.audio,
+    options.filename ||
+      (options.jobType === "tts" ? "speech.wav" : "cloned-speech.wav"),
+  );
+
+  const res = await authFetch(`${API_URL}/speech/save`, {
+    method: "POST",
+    body: form,
+  });
+  const data = await handleResponse<{ id: string }>(res);
+  return data.id;
 }
 
 export async function pollJobUntilDone(

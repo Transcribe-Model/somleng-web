@@ -1,17 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { cloneSpeech } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  cloneSpeech,
+  deleteSavedVoice,
+  fetchSavedVoiceAudio,
+  fetchSavedVoices,
+  saveSpeechToHistory,
+  saveVoice,
+  type SavedVoiceSummary,
+} from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { estimateRemainingSeconds } from "@/lib/progress";
 import { SpeechProgressPanel } from "@/components/SpeechProgressPanel";
+import { splitCloneText } from "@/lib/cloneChunks";
+import { concatAudioBlobs } from "@/lib/wavConcat";
 
-const MAX_CHARS = 1000;
+/** Long scripts are chunked; each GPU pass stays short on RTX 2050. */
+const MAX_CHARS = 6000;
+const CHUNK_TARGET = 280;
+const CHUNK_MAX = 360;
 const MAX_RECORD_MS = 12_000;
 
-function estimateCloneMs(charCount: number): number {
-  const base = 8000;
-  return Math.min(120_000, Math.max(base, base + charCount * 28));
+function estimateCloneMs(charCount: number, chunks = 1): number {
+  const perChunk = Math.min(180_000, Math.max(12_000, 8000 + charCount * 28));
+  return Math.min(45 * 60_000, perChunk * Math.max(1, chunks));
 }
 
 function pickRecorderMimeType(): string | undefined {
@@ -42,6 +55,16 @@ export function VoiceCloneApp() {
   const [consent, setConsent] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
+  const [savedVoices, setSavedVoices] = useState<SavedVoiceSummary[]>([]);
+  const [selectedSavedVoiceId, setSelectedSavedVoiceId] = useState<string | null>(
+    null,
+  );
+  const [selectedSavedName, setSelectedSavedName] = useState<string | null>(null);
+  const [loadingVoices, setLoadingVoices] = useState(true);
+  const [saveName, setSaveName] = useState("");
+  const [savingVoice, setSavingVoice] = useState(false);
+  const [chunkLabel, setChunkLabel] = useState<string | null>(null);
+  const [chunkTotal, setChunkTotal] = useState(1);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -55,6 +78,21 @@ export function VoiceCloneApp() {
     { code: "km-KH", label: t.languageKhmer },
     { code: "en-US", label: t.languageEnglish },
   ];
+
+  const loadVoices = useCallback(async () => {
+    try {
+      const voices = await fetchSavedVoices();
+      setSavedVoices(voices);
+    } catch {
+      setSavedVoices([]);
+    } finally {
+      setLoadingVoices(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadVoices();
+  }, [loadVoices]);
 
   useEffect(() => {
     return () => {
@@ -108,11 +146,32 @@ export function VoiceCloneApp() {
   }
 
   function setReference(file: File | null) {
+    setSelectedSavedVoiceId(null);
+    setSelectedSavedName(null);
     setReferenceFile(file);
     setReferencePreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return file ? URL.createObjectURL(file) : null;
     });
+  }
+
+  async function selectSavedVoice(voice: SavedVoiceSummary) {
+    setError(null);
+    setReferenceFile(null);
+    setSelectedSavedVoiceId(voice.id);
+    setSelectedSavedName(voice.name);
+    try {
+      const blob = await fetchSavedVoiceAudio(voice.id);
+      const url = URL.createObjectURL(blob);
+      setReferencePreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.loadFailed);
+      setSelectedSavedVoiceId(null);
+      setSelectedSavedName(null);
+    }
   }
 
   function handleFileSelect(files: FileList | null) {
@@ -188,8 +247,6 @@ export function VoiceCloneApp() {
         stopRecording();
       }, MAX_RECORD_MS);
     } catch {
-      stopRecordingCleanup();
-      setRecording(false);
       setError(t.ttsCloneMicDenied);
     }
   }
@@ -206,7 +263,7 @@ export function VoiceCloneApp() {
 
   const trimmed = text.trim();
   const overLimit = text.length > MAX_CHARS;
-  const hasReference = Boolean(referenceFile);
+  const hasReference = Boolean(referenceFile || selectedSavedVoiceId);
   const canGenerate =
     hasReference &&
     consent &&
@@ -220,7 +277,10 @@ export function VoiceCloneApp() {
   useEffect(() => {
     if (!loading || progressStartedAt == null) return;
 
-    const estimatedMs = estimateCloneMs(trimmed.length || 1);
+    const estimatedMs = estimateCloneMs(
+      Math.ceil((trimmed.length || 1) / Math.max(1, chunkTotal)),
+      chunkTotal,
+    );
     const id = window.setInterval(() => {
       const now = Date.now();
       setProgressNow(now);
@@ -231,28 +291,66 @@ export function VoiceCloneApp() {
     }, 200);
 
     return () => window.clearInterval(id);
-  }, [loading, progressStartedAt, trimmed.length]);
+  }, [loading, progressStartedAt, trimmed.length, chunkTotal]);
 
   async function handleGenerate() {
-    if (!canGenerate || !referenceFile) {
-      if (!referenceFile) setError(t.ttsCloneNeedReference);
+    if (!canGenerate) {
+      if (!hasReference) setError(t.ttsCloneNeedReference);
       else if (!consent) setError(t.ttsCloneNeedConsent);
       return;
     }
 
+    const chunks = splitCloneText(trimmed, CHUNK_TARGET, CHUNK_MAX);
+    if (chunks.length === 0) return;
+
     setLoading(true);
     setProgress(5);
     setProgressStartedAt(Date.now());
+    setChunkTotal(chunks.length);
+    setChunkLabel(t.cloneChunkProgress(1, chunks.length));
     setError(null);
 
+    const baseOptions = {
+      language,
+      voiceConsent: consent,
+      savedVoiceId: selectedSavedVoiceId ?? undefined,
+      referenceAudio: selectedSavedVoiceId
+        ? undefined
+        : (referenceFile ?? undefined),
+      filename: referenceFile?.name,
+      persist: false as const,
+    };
+
     try {
-      const blob = await cloneSpeech(trimmed, referenceFile, {
-        language,
-        voiceConsent: consent,
-        filename: referenceFile.name,
-      });
+      const parts: Blob[] = [];
+      for (let i = 0; i < chunks.length; i++) {
+        setChunkLabel(t.cloneChunkProgress(i + 1, chunks.length));
+        setProgress(Math.min(88, Math.round(((i + 0.15) / chunks.length) * 88)));
+        const part = await cloneSpeech(chunks[i]!, baseOptions);
+        parts.push(part);
+        setProgress(Math.min(90, Math.round(((i + 1) / chunks.length) * 90)));
+      }
+
+      setChunkLabel(t.cloneStitching);
+      setProgress(93);
+      const combined =
+        parts.length === 1 ? parts[0]! : await concatAudioBlobs(parts);
+
+      try {
+        await saveSpeechToHistory({
+          text: trimmed,
+          language,
+          jobType: "clone",
+          engine: "voxcpm2",
+          audio: combined,
+          filename: "cloned-speech.wav",
+        });
+      } catch (persistError) {
+        console.warn("clone history save failed:", persistError);
+      }
+
       setProgress(100);
-      const nextUrl = URL.createObjectURL(blob);
+      const nextUrl = URL.createObjectURL(combined);
       setAudioUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return nextUrl;
@@ -262,11 +360,55 @@ export function VoiceCloneApp() {
     } finally {
       setLoading(false);
       setProgressStartedAt(null);
+      setChunkLabel(null);
       window.setTimeout(() => setProgress(0), 400);
     }
   }
 
+  async function handleSaveVoice() {
+    if (!referenceFile || savingVoice) return;
+    const name = saveName.trim();
+    if (!name) {
+      setError(t.cloneSaveVoiceName);
+      return;
+    }
+
+    setSavingVoice(true);
+    setError(null);
+    try {
+      const voice = await saveVoice(name, referenceFile, referenceFile.name);
+      setSaveName("");
+      await loadVoices();
+      await selectSavedVoice(voice);
+      setReferenceFile(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.ttsCloneFailed);
+    } finally {
+      setSavingVoice(false);
+    }
+  }
+
+  async function handleDeleteVoice(id: string) {
+    setError(null);
+    try {
+      await deleteSavedVoice(id);
+      if (selectedSavedVoiceId === id) {
+        setSelectedSavedVoiceId(null);
+        setSelectedSavedName(null);
+        setReferencePreviewUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setConsent(false);
+      }
+      await loadVoices();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.ttsCloneFailed);
+    }
+  }
+
   function progressLabel(): string {
+    if (chunkLabel) return chunkLabel;
     if (progress < 25) return t.ttsPreparing;
     if (progress < 85) return t.ttsCloning;
     return t.ttsFinalizing;
@@ -281,7 +423,7 @@ export function VoiceCloneApp() {
     if (!audioUrl) return;
     const a = document.createElement("a");
     a.href = audioUrl;
-    a.download = "cloned-speech.mp3";
+    a.download = "cloned-speech.wav";
     a.click();
   }
 
@@ -351,6 +493,60 @@ export function VoiceCloneApp() {
                 </p>
               </div>
 
+              <div className="space-y-2">
+                <p className="khmer-text text-sm font-medium text-text">
+                  {t.cloneSavedVoices}
+                </p>
+                {loadingVoices ? (
+                  <p className="khmer-text text-sm text-text-muted">{t.loading}</p>
+                ) : savedVoices.length === 0 ? (
+                  <p className="khmer-text text-sm text-text-muted">
+                    {t.cloneSavedVoicesEmpty}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {savedVoices.map((voice) => {
+                      const active = selectedSavedVoiceId === voice.id;
+                      return (
+                        <li
+                          key={voice.id}
+                          className={[
+                            "flex items-center gap-2 rounded-[6px] border px-3 py-2",
+                            active
+                              ? "border-navy/40 bg-navy/5"
+                              : "border-border bg-white",
+                          ].join(" ")}
+                        >
+                          <button
+                            type="button"
+                            disabled={loading || recording}
+                            onClick={() => void selectSavedVoice(voice)}
+                            className="khmer-text min-w-0 flex-1 text-left text-sm font-medium text-navy"
+                          >
+                            {voice.name}
+                            <span className="mt-0.5 block truncate text-xs font-normal text-text-muted">
+                              {voice.original_filename || t.cloneUseSaved}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loading || recording}
+                            onClick={() => void handleDeleteVoice(voice.id)}
+                            className="khmer-text shrink-0 rounded px-2 py-1 text-xs text-red-700 hover:bg-red-50"
+                          >
+                            {t.cloneDeleteVoice}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <p className="khmer-text text-sm font-medium text-text">
+                {t.cloneNewReference}
+              </p>
+
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -374,12 +570,14 @@ export function VoiceCloneApp() {
                     {t.ttsCloneStop} ({recordSeconds}s)
                   </button>
                 )}
-                {referenceFile && !recording && (
+                {hasReference && !recording && (
                   <button
                     type="button"
                     disabled={loading}
                     onClick={() => {
                       setReference(null);
+                      setSelectedSavedVoiceId(null);
+                      setSelectedSavedName(null);
                       setConsent(false);
                     }}
                     className="btn-secondary"
@@ -406,13 +604,12 @@ export function VoiceCloneApp() {
                 </p>
               )}
 
-              {referenceFile && referencePreviewUrl && (
+              {hasReference && referencePreviewUrl && (
                 <div className="space-y-2 rounded-[6px] border border-border bg-bg-accent/50 p-3">
                   <p className="khmer-text text-sm font-medium text-text">
-                    {t.ttsClonePreview}:{" "}
-                    <span className="font-normal text-text-muted">
-                      {referenceFile.name}
-                    </span>
+                    {selectedSavedVoiceId
+                      ? `${t.cloneSelectedSaved}: ${selectedSavedName ?? ""}`
+                      : `${t.ttsClonePreview}: ${referenceFile?.name ?? ""}`}
                   </p>
                   <audio
                     controls
@@ -422,6 +619,35 @@ export function VoiceCloneApp() {
                   >
                     {t.audioUnsupported}
                   </audio>
+                </div>
+              )}
+
+              {referenceFile && !selectedSavedVoiceId && !recording && (
+                <div className="space-y-2 rounded-[6px] border border-dashed border-navy/25 bg-white p-3">
+                  <p className="khmer-text text-sm font-medium text-navy">
+                    {t.cloneSaveVoice}
+                  </p>
+                  <label className="block space-y-1.5">
+                    <span className="khmer-text text-xs font-medium text-text-muted">
+                      {t.cloneSaveVoiceName}
+                    </span>
+                    <input
+                      value={saveName}
+                      onChange={(e) => setSaveName(e.target.value)}
+                      disabled={loading || savingVoice}
+                      placeholder={t.cloneSaveVoicePlaceholder}
+                      className="gov-input"
+                      maxLength={80}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={loading || savingVoice || !saveName.trim()}
+                    onClick={() => void handleSaveVoice()}
+                    className="btn-secondary"
+                  >
+                    {savingVoice ? t.cloneSavingVoice : t.cloneSaveVoiceAction}
+                  </button>
                 </div>
               )}
             </section>
@@ -505,6 +731,14 @@ export function VoiceCloneApp() {
                 {overLimit && (
                   <p className="khmer-text text-sm text-red-700">
                     {t.ttsOverLimit(MAX_CHARS)}
+                  </p>
+                )}
+                {!overLimit && text.trim().length > CHUNK_MAX && (
+                  <p className="khmer-text text-xs leading-relaxed text-text-muted">
+                    {t.cloneLongHint}{" "}
+                    (
+                    {splitCloneText(text.trim(), CHUNK_TARGET, CHUNK_MAX).length}{" "}
+                    parts)
                   </p>
                 )}
               </label>

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { VoxttsError, cloneSpeechAndWait } from "@/lib/voxtts";
+import { persistGeneratedSpeech } from "@/lib/speechJobs";
+import { requireUser } from "@/lib/requireUser";
+import { serviceClient } from "@/lib/savedVoices";
+import { somlengAiFetchFile } from "@/lib/somlengAi";
 
 export const maxDuration = 800;
 
@@ -21,28 +24,6 @@ const ALLOWED_AUDIO_TYPES = new Set([
   "audio/flac",
   "application/octet-stream",
 ]);
-
-async function requireUser(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return null;
-  }
-
-  const token = authHeader.slice("Bearer ".length).trim();
-  if (!token) return null;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) return null;
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return null;
-  return data.user;
-}
 
 function extensionForType(type: string, fallbackName: string): string {
   const fromName = fallbackName.includes(".")
@@ -70,13 +51,21 @@ export async function POST(req: NextRequest) {
     const textRaw = form.get("text");
     const languageRaw = form.get("language");
     const consentRaw = form.get("voice_consent");
+    const savedVoiceIdRaw = form.get("saved_voice_id");
+    const persistRaw = form.get("persist");
     const reference = form.get("reference_audio");
+    const shouldPersist =
+      persistRaw !== "false" &&
+      persistRaw !== "0" &&
+      persistRaw !== "no";
 
     const text = typeof textRaw === "string" ? textRaw.trim() : "";
     const language =
       typeof languageRaw === "string" && ALLOWED_LANGUAGES.has(languageRaw)
         ? languageRaw
         : "km-KH";
+    const savedVoiceId =
+      typeof savedVoiceIdRaw === "string" ? savedVoiceIdRaw.trim() : "";
 
     const consent =
       consentRaw === "true" ||
@@ -102,48 +91,79 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!(reference instanceof File)) {
+    let referenceAudio: Blob;
+    let filename: string;
+
+    if (savedVoiceId) {
+      const supabase = serviceClient();
+      if (!supabase) {
+        return NextResponse.json(
+          { detail: "Database not configured" },
+          { status: 500 },
+        );
+      }
+
+      const { data: voice, error } = await supabase
+        .from("saved_voices")
+        .select("id,audio_path,original_filename")
+        .eq("id", savedVoiceId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error || !voice?.audio_path) {
+        return NextResponse.json(
+          { detail: "Saved voice not found" },
+          { status: 404 },
+        );
+      }
+
+      const fetched = await somlengAiFetchFile(voice.audio_path);
+      referenceAudio = new Blob([new Uint8Array(fetched.bytes)], {
+        type: fetched.contentType || "audio/wav",
+      });
+      filename = voice.original_filename || "saved-voice.wav";
+    } else if (reference instanceof File) {
+      if (reference.size <= 0) {
+        return NextResponse.json(
+          { detail: "Reference audio file is empty" },
+          { status: 400 },
+        );
+      }
+
+      if (reference.size > MAX_AUDIO_BYTES) {
+        return NextResponse.json(
+          { detail: "Reference audio must be 10MB or smaller" },
+          { status: 400 },
+        );
+      }
+
+      const contentType = reference.type || "application/octet-stream";
+      if (!ALLOWED_AUDIO_TYPES.has(contentType)) {
+        return NextResponse.json(
+          {
+            detail:
+              "Unsupported reference audio type. Use MP3, WAV, M4A, FLAC, OGG, or WEBM.",
+          },
+          { status: 400 },
+        );
+      }
+
+      referenceAudio = reference;
+      filename =
+        reference.name ||
+        `reference${extensionForType(contentType, reference.name || "")}`;
+    } else {
       return NextResponse.json(
-        { detail: "Reference audio is required" },
+        { detail: "Reference audio or saved voice is required" },
         { status: 400 },
       );
     }
 
-    if (reference.size <= 0) {
-      return NextResponse.json(
-        { detail: "Reference audio file is empty" },
-        { status: 400 },
-      );
-    }
-
-    if (reference.size > MAX_AUDIO_BYTES) {
-      return NextResponse.json(
-        { detail: "Reference audio must be 10MB or smaller" },
-        { status: 400 },
-      );
-    }
-
-    const contentType = reference.type || "application/octet-stream";
-    if (!ALLOWED_AUDIO_TYPES.has(contentType)) {
-      return NextResponse.json(
-        {
-          detail:
-            "Unsupported reference audio type. Use MP3, WAV, M4A, FLAC, OGG, or WEBM.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const filename =
-      reference.name ||
-      `reference${extensionForType(contentType, reference.name || "")}`;
-
-    // language is accepted for API symmetry with TTS; VoxTTS infers from text script
     void language;
 
     const { bytes, contentType: outputType } = await cloneSpeechAndWait({
       text,
-      referenceAudio: reference,
+      referenceAudio,
       referenceFilename: filename,
     });
 
@@ -152,14 +172,30 @@ export async function POST(req: NextRequest) {
       : outputType.includes("ogg")
         ? "ogg"
         : "mp3";
+    const outName = `cloned-speech.${dispositionExt}`;
+
+    const jobId = shouldPersist
+      ? await persistGeneratedSpeech({
+          jobType: "clone",
+          text,
+          language,
+          engine: "voxcpm2",
+          filename: outName,
+          bytes,
+          contentType: outputType,
+        })
+      : null;
+
+    const headers: Record<string, string> = {
+      "Content-Type": outputType,
+      "Cache-Control": "no-store",
+      "Content-Disposition": `inline; filename="${outName}"`,
+    };
+    if (jobId) headers["X-Job-Id"] = jobId;
 
     return new NextResponse(new Uint8Array(bytes), {
       status: 200,
-      headers: {
-        "Content-Type": outputType,
-        "Cache-Control": "no-store",
-        "Content-Disposition": `inline; filename="cloned-speech.${dispositionExt}"`,
-      },
+      headers,
     });
   } catch (error: unknown) {
     if (error instanceof VoxttsError) {

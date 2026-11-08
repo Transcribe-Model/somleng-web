@@ -4,6 +4,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.transcription_jobs (
   id uuid primary key default gen_random_uuid(),
   status text not null default 'queued',
+  job_type text not null default 'transcribe',
   language text,
   model text,
   engine text,

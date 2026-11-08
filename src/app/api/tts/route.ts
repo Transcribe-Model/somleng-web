@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { SomlengAiError, somlengAiPresetSpeech } from "@/lib/somlengAi";
+import { persistGeneratedSpeech } from "@/lib/speechJobs";
 
 export const maxDuration = 300;
 
@@ -54,14 +55,28 @@ export async function POST(req: NextRequest) {
 
     const { bytes, contentType } = await somlengAiPresetSpeech({ text, language });
     const ext = contentType.includes("wav") ? "wav" : "mp3";
+    const filename = `speech.${ext}`;
+
+    const jobId = await persistGeneratedSpeech({
+      jobType: "tts",
+      text,
+      language,
+      engine: "mms",
+      filename,
+      bytes,
+      contentType,
+    });
+
+    const headers: Record<string, string> = {
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+      "Content-Disposition": `inline; filename="${filename}"`,
+    };
+    if (jobId) headers["X-Job-Id"] = jobId;
 
     return new NextResponse(new Uint8Array(bytes), {
       status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "no-store",
-        "Content-Disposition": `inline; filename="speech.${ext}"`,
-      },
+      headers,
     });
   } catch (error: unknown) {
     if (error instanceof SomlengAiError) {

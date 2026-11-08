@@ -1,5 +1,7 @@
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
+export type JobType = "transcribe" | "tts" | "clone";
+
 export interface Segment {
   start: number | null;
   end: number | null;
@@ -25,6 +27,7 @@ export interface JobCreateResponse {
 export interface JobResponse {
   id: string;
   status: JobStatus;
+  job_type?: JobType | null;
   language: string | null;
   model: string | null;
   original_filename: string | null;
@@ -41,6 +44,7 @@ export interface JobResponse {
 export interface JobSummary {
   id: string;
   status: JobStatus;
+  job_type: JobType;
   language: string | null;
   original_filename: string | null;
   duration_seconds: number | null;

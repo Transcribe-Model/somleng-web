@@ -246,10 +246,10 @@ export default function HomePage() {
           <Image
             src="/logo.png"
             alt="សម្លេងខ្មែរ"
-            width={320}
-            height={112}
+            width={560}
+            height={200}
             priority
-            className="mx-auto mb-6 h-16 w-auto object-contain sm:mb-8 sm:h-20 md:h-24"
+            className="mx-auto mb-6 h-28 w-auto object-contain sm:mb-8 sm:h-36 md:h-44"
           />
           <p className="khmer-text mb-4 text-sm font-medium text-gold">
             {isKhmer ? km.heroTagline : "Khmer speech transcription"}

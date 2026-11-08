@@ -10,7 +10,7 @@ import {
   formatEtaSeconds,
   resolveJobProgressPercent,
 } from "@/lib/progress";
-import type { JobStatus, JobSummary } from "@/types/transcribe";
+import type { JobStatus, JobSummary, JobType } from "@/types/transcribe";
 
 interface HistoryListProps {
   jobs: JobSummary[];
@@ -67,6 +67,12 @@ export function HistoryList({
   const { text: t } = useLanguage();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<JobSummary | null>(null);
+
+  function jobTypeLabel(jobType: JobType): string {
+    if (jobType === "tts") return t.historyJobTts;
+    if (jobType === "clone") return t.historyJobClone;
+    return t.historyJobTranscribe;
+  }
 
   function requestDelete(job: JobSummary) {
     if (deletingId) return;
@@ -164,6 +170,10 @@ export function HistoryList({
                   </span>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-text-muted">
+                  <span className="khmer-text rounded bg-navy/5 px-1.5 py-0.5 font-medium text-navy/80">
+                    {jobTypeLabel(job.job_type ?? "transcribe")}
+                  </span>
+                  <span>·</span>
                   <span>{formatDate(job.created_at)}</span>
                   {job.duration_seconds != null && (
                     <>

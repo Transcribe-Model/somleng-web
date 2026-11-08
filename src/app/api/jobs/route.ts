@@ -13,7 +13,10 @@ export async function GET(req: NextRequest) {
 
     const { data: jobs, count, error } = await supabase
       .from("transcription_jobs")
-      .select("id,status,language,original_filename,duration_seconds,created_at,audio_path,progress_percent,error_message,text", { count: "exact" })
+      .select(
+        "id,status,job_type,language,original_filename,duration_seconds,created_at,audio_path,progress_percent,error_message,text",
+        { count: "exact" },
+      )
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -27,9 +30,14 @@ export async function GET(req: NextRequest) {
       if (job.status === "failed" && job.error_message) {
         preview = job.error_message;
       }
+      const jobType =
+        job.job_type === "tts" || job.job_type === "clone"
+          ? job.job_type
+          : "transcribe";
       return {
         id: job.id,
         status: job.status,
+        job_type: jobType,
         language: job.language,
         original_filename: job.original_filename,
         duration_seconds: job.duration_seconds,
