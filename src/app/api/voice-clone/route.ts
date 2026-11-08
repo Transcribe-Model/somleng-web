@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/requireUser";
 import { serviceClient } from "@/lib/savedVoices";
 import { somlengAiFetchFile } from "@/lib/somlengAi";
 
-export const maxDuration = 800;
+export const maxDuration = 300;
 
 const MAX_CHARS = 1000;
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
